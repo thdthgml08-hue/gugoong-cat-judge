@@ -846,13 +846,24 @@
     // 집 안은 0·1, 골목은 2·3 라운드 — 큐는 장면별 두 명씩
     const data = G.queue[G.round % 2];
     if (!data) return;
+    const worldMax = WORLD[G.scene];
+    /* 배경을 확대해 화면에 담기는 폭이 좁아졌다(VIS_W).
+       그래서 원래 자리(SPOTS)가 화면 밖이면 구공이 바로 앞쪽에 세워,
+       다음 인간이 어디서 오는지 늘 보이게 한다. */
     const spot = SPOTS[G.scene][G.round % 4];
+    const target = clamp(
+      Math.abs(spot - G.cat.x) <= VIS_W * 0.72 ? spot : G.cat.x + 76,
+      30, worldMax - 30
+    );
+    let from = target + 55;
+    let facing = -1;                       // 오른쪽에서 걸어 들어온다
+    if (from > worldMax - 8) { from = target - 55; facing = 1; }
     G.human = {
       data,
       sprite: data.sprite,
-      x: spot + (G.scene === 'in' ? 60 : 70),   // 오른쪽에서 걸어 들어온다
-      target: spot,
-      facing: -1,
+      x: from,
+      target,
+      facing,
       walking: true,
       state: 'enter',
       stay: G.scene === 'in' ? 55 : 40,
