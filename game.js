@@ -112,8 +112,9 @@
   })();
 
   /* ─────────────── 이미지 ─────────────── */
-  const SPRITE_H = 46;      // 사람 스프라이트 높이 (논리 픽셀)
-  const CAT_H = 38;
+  const SPRITE_H = 76;      // 사람 스프라이트 높이 (논리 픽셀 · 무대 135의 56%)
+  const CAT_H = 34;         // 구공이(팻말 포함) 높이 — 사람 허리 아래, 고양이 비율
+  const ZOOM = 1.45;        // 배경 확대 배율 (바닥선 고정) — 사람이 커진 만큼 방·골목도 당겨 본다
   const humanH = (scale) => SPRITE_H * (scale || 1);
 
   const IMG = {
@@ -542,19 +543,21 @@
       }
     }
 
+    /* 사람·구공이는 화면 좌표(확대된 배경과 같은 배율로 옮긴 x)로 그린다. */
     function drawPerson(key, x, feetY, facing, t, walking, hScale) {
       const img = IMG.people[key];
       if (!img || !img.complete || !img.naturalWidth) return;
       const h = humanH(hScale);
       const w = h * (img.naturalWidth / img.naturalHeight);
       const bob = walking ? (Math.sin(t * 0.012) > 0 ? 0 : 1) : (Math.sin(t * 0.004) > 0 ? 0 : 1);
-      const sx = Math.round(x);
+      const sx = Math.round(x - w / 2);
       const sy = Math.round(feetY - h + bob);
 
       // 그림자
       ctx.fillStyle = 'rgba(70,45,28,.15)';
       ctx.fillRect(sx + w * 0.15, feetY - 1, Math.max(7, w * 0.62), 2);
 
+      // 원본 일러스트는 오른쪽을 보고 있다 → 왼쪽으로 갈 때 좌우 반전
       ctx.save();
       if (facing < 0) {
         ctx.translate(sx + w, 0);
@@ -573,20 +576,24 @@
       const w = h * (img.naturalWidth / img.naturalHeight);
       const bob = walking ? (Math.sin(t * 0.014) > 0 ? 0 : 1) : (Math.sin(t * 0.003) > 0 ? 0 : 1);
       const tilt = walking ? Math.sin(t * 0.014) * 0.02 : 0;
-      const sx = Math.round(x);
+      const sx = Math.round(x - w / 2);
       const sy = Math.round(feetY - h + bob);
 
       ctx.fillStyle = 'rgba(70,45,28,.15)';
       ctx.fillRect(sx + w * 0.22, feetY - 1, w * 0.6, 2);
 
       ctx.save();
+      ctx.globalAlpha = 1;                 // 구공이는 언제나 100% 불투명
       ctx.translate(sx + w / 2, sy + h);
       ctx.rotate(tilt);
       if (sniffing) ctx.translate(0, 2);
+      /* 원본 assets/gugoong.png 는 왼쪽을 보고 있다.
+         왼쪽으로 갈 때는 그대로, 오른쪽으로 갈 때는 좌우 반전해 진행 방향을 본다. */
+      if (facing > 0) ctx.scale(-1, 1);
       ctx.drawImage(img, -w / 2, -h, w, h);
       ctx.restore();
 
-      // 걷기 먼지
+      // 걷기 먼지 (진행 반대쪽 뒤꿈치)
       if (walking) {
         const ph = (t * 0.02) % 1;
         if (ph > 0.6) {
@@ -601,15 +608,26 @@
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       ctx.imageSmoothingEnabled = true;
       ctx.clearRect(0, 0, VIEW_W, VIEW_H);
-      if (mode === 'in') drawInterior(cam, t);
-      else drawAlley(cam, t);
 
       const feet = mode === 'in' ? FLOOR_IN : FLOOR_OUT;
-      // 뒤쪽 인물 → 앞쪽 인물 순
-      const list = entities.slice().sort((a, b) => a.x - b.x);
+      const toScreenX = (wx) => (wx - cam) * ZOOM;
+
+      // 배경은 바닥선을 고정한 채 ZOOM 배 확대 (방·골목이 화면을 꽉 채운다)
+      ctx.save();
+      ctx.translate(0, feet * (1 - ZOOM));
+      ctx.scale(ZOOM, ZOOM);
+      if (mode === 'in') drawInterior(cam, t);
+      else drawAlley(cam, t);
+      ctx.restore();
+
+      // 인간들 → 구공이 순. 구공이는 언제나 사람 앞(전경)에서 걷는다.
+      const list = entities.filter(e => e.kind === 'human').sort((a, b) => a.x - b.x);
       for (const e of list) {
-        if (e.kind === 'human') drawPerson(e.sprite, e.x - cam, feet, e.facing, t, e.walking, e.hScale);
-        else drawCat(e.x - cam, feet, e.facing, t, e.walking, e.sniffing);
+        drawPerson(e.sprite, toScreenX(e.x), feet, e.facing, t, e.walking, e.hScale);
+      }
+      for (const e of entities) {
+        if (e.kind !== 'cat') continue;
+        drawCat(toScreenX(e.x), feet, e.facing, t, e.walking, e.sniffing);
       }
     }
 
@@ -621,7 +639,7 @@
 
     function refit() { lastFit = 0; }
 
-    return { draw, setScene, refit, VIEW_W, VIEW_H };
+    return { draw, setScene, refit, VIEW_W, VIEW_H, ZOOM };
   })();
 
   /* ─────────────── 화면 요소 ─────────────── */
@@ -718,10 +736,12 @@
   }
 
   /* ── 월드 좌표 → 무대 위 % ── */
-  function toStage(wx, wy) {
+  /* wx 는 월드(배경) x, sy 는 화면 논리 y. 사람·구공이가 커진 만큼 x 만 ZOOM 배로 옮긴다. */
+  const VIS_W = VIEW_W / ZOOM;
+  function toStage(wx, sy) {
     return {
-      left: ((wx - G.cam) / VIEW_W) * 100,
-      top: (wy / VIEW_H) * 100
+      left: ((((wx - G.cam) * ZOOM) / VIEW_W) * 100),
+      top: (sy / VIEW_H) * 100
     };
   }
 
@@ -1092,7 +1112,7 @@
       // 인간 앞에서는 걸음을 멈추고 마주 본다 (지나치지 않게)
       if (dir !== 0 && G.human && G.human.state === 'idle') {
         const gap = G.human.x - G.cat.x;
-        if (Math.sign(gap) === dir && Math.abs(gap) <= 26) { dir = 0; G.walkTo = null; }
+        if (Math.sign(gap) === dir && Math.abs(gap) <= 30) { dir = 0; G.walkTo = null; }
       }
       G.cat.walking = dir !== 0;
       if (dir !== 0) {
@@ -1132,7 +1152,7 @@
       } else if (h.state === 'leave') {
         h.walking = true;
         h.x += 78 * dt;
-        const offScreen = h.x > G.cam + VIEW_W + 12 || h.x < G.cam - 40;
+        const offScreen = h.x > G.cam + VIS_W + 12 || h.x < G.cam - 40;
         if (G.phase === 'leaving' && offScreen) {
           afterLeave();
         } else if (h.x > worldMax + 60) {
@@ -1149,7 +1169,7 @@
     if (G.trans) updateTransition(dt);
 
     /* 카메라 */
-    const camTarget = clamp(G.cat.x - VIEW_W / 2 + 10, 0, worldMax - VIEW_W);
+    const camTarget = clamp(G.cat.x - VIS_W / 2 + 7, 0, worldMax - VIS_W);
     G.cam += (camTarget - G.cam) * Math.min(1, dt * 6);
 
     /* 무대 위 DOM (점수/말풍선) 위치 갱신 */
@@ -1199,7 +1219,7 @@
   function pointerDir(clientX) {
     const rect = ui.stage.getBoundingClientRect();
     const logical = ((clientX - rect.left) / rect.width) * VIEW_W;
-    const catScreen = G.cat.x - G.cam;
+    const catScreen = (G.cat.x - G.cam) * ZOOM;
     if (Math.abs(logical - catScreen) < 12) return 0;
     return logical > catScreen ? 1 : -1;
   }
@@ -1234,7 +1254,7 @@
     const worldAt = (clientX) => {
       const rect = ui.stage.getBoundingClientRect();
       const logical = ((clientX - rect.left) / rect.width) * VIEW_W;
-      return clamp(G.cam + logical, 8, WORLD[G.scene] - 10);
+      return clamp(G.cam + logical / ZOOM, 8, WORLD[G.scene] - 10);
     };
     const start = (e) => {
       if (G.phase !== 'play') return;
