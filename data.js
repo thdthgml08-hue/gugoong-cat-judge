@@ -293,7 +293,8 @@ const RANKS = [
   { min: 0, title: '문 앞의 얼룩', desc: '오늘의 심사는 물거품. 내일은 진짜 고양이처럼 해보자.' }
 ];
 
-/* v2: 장면(집 안/골목)과 캐릭터 스프라이트 */
+/* v2: 장면(집 안/골목)과 캐릭터 스프라이트
+   hScale: 화면에 그릴 때 어른 키(1.0)에 대한 비율 — 아이는 작게 그린다. */
 const SPRITES = {
   bab:      { scene: 'in',  sprite: 'assets/people/bab.png' },
   churu:    { scene: 'in',  sprite: 'assets/people/churu.png' },
@@ -301,11 +302,11 @@ const SPRITES = {
   play:     { scene: 'in',  sprite: 'assets/people/play.png' },
   photo:    { scene: 'in',  sprite: 'assets/people/photo.png' },
   tail:     { scene: 'in',  sprite: 'assets/people/tail.png' },
-  stray:    { scene: 'out', sprite: 'assets/people/stray.png' },
+  stray:    { scene: 'out', sprite: 'assets/people/stray.png', hScale: 0.7 },
   shout:    { scene: 'out', sprite: 'assets/people/shout.png' },
   empty:    { scene: 'out', sprite: 'assets/people/empty.png' },
   parcel:   { scene: 'out', sprite: 'assets/people/parcel.png' },
-  kin:      { scene: 'out', sprite: 'assets/people/kin.png' },
+  kin:      { scene: 'out', sprite: 'assets/people/kin.png', hScale: 0.7 },
   tsundere: { scene: 'out', sprite: 'assets/people/tsundere.png' }
 };
 HUMANS.forEach(h => Object.assign(h, SPRITES[h.id] || { scene: 'out', sprite: 'assets/people/bab.png' }));

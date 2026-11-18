@@ -114,6 +114,7 @@
   /* ─────────────── 이미지 ─────────────── */
   const SPRITE_H = 46;      // 사람 스프라이트 높이 (논리 픽셀)
   const CAT_H = 38;
+  const humanH = (scale) => SPRITE_H * (scale || 1);
 
   const IMG = {
     cat: null,
@@ -135,7 +136,27 @@
   const Scene = (() => {
     const cv = $('#scene');
     const ctx = cv.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
+    let scale = 1;          // 논리 픽셀 → 캔버스 장치 픽셀
+    let lastFit = 0;
+
+    /* 무대 크기 × devicePixelRatio 로 캔버스 내부 해상도를 맞춘다.
+       논리 좌표계(240×135)는 그대로 두고 그리기 행렬만 확대해, 레티나 화면에서도
+       배경과 캐릭터가 뭉개지지 않게 그린다. */
+    function fitCanvas(now) {
+      if (now && now - lastFit < 400) return;   // 레이아웃 측정은 가끔만
+      lastFit = now || 0;
+      const rect = cv.getBoundingClientRect();
+      const cssW = rect.width;
+      if (!cssW) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const target = Math.max(1, Math.round(cssW * dpr));
+      if (cv.width === target) return;
+      scale = target / VIEW_W;
+      cv.width = target;
+      cv.height = Math.round(VIEW_H * scale);
+      ctx.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+    }
 
     let mode = 'in';
     let theme = DAYS[0].theme;
@@ -521,10 +542,10 @@
       }
     }
 
-    function drawPerson(key, x, feetY, facing, t, walking) {
+    function drawPerson(key, x, feetY, facing, t, walking, hScale) {
       const img = IMG.people[key];
       if (!img || !img.complete || !img.naturalWidth) return;
-      const h = SPRITE_H;
+      const h = humanH(hScale);
       const w = h * (img.naturalWidth / img.naturalHeight);
       const bob = walking ? (Math.sin(t * 0.012) > 0 ? 0 : 1) : (Math.sin(t * 0.004) > 0 ? 0 : 1);
       const sx = Math.round(x);
@@ -576,6 +597,9 @@
     }
 
     function draw(t, cam, entities) {
+      fitCanvas(t);
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.imageSmoothingEnabled = true;
       ctx.clearRect(0, 0, VIEW_W, VIEW_H);
       if (mode === 'in') drawInterior(cam, t);
       else drawAlley(cam, t);
@@ -584,7 +608,7 @@
       // 뒤쪽 인물 → 앞쪽 인물 순
       const list = entities.slice().sort((a, b) => a.x - b.x);
       for (const e of list) {
-        if (e.kind === 'human') drawPerson(e.sprite, e.x - cam, feet, e.facing, t, e.walking);
+        if (e.kind === 'human') drawPerson(e.sprite, e.x - cam, feet, e.facing, t, e.walking, e.hScale);
         else drawCat(e.x - cam, feet, e.facing, t, e.walking, e.sniffing);
       }
     }
@@ -595,7 +619,9 @@
       world = m === 'in' ? buildInterior(seed) : buildAlley(seed);
     }
 
-    return { draw, setScene, VIEW_W, VIEW_H };
+    function refit() { lastFit = 0; }
+
+    return { draw, setScene, refit, VIEW_W, VIEW_H };
   })();
 
   /* ─────────────── 화면 요소 ─────────────── */
@@ -881,7 +907,7 @@
     }
 
     // 머리 위 점수
-    const headY = (G.scene === 'in' ? FLOOR_IN : FLOOR_OUT) - SPRITE_H - 4;
+    const headY = (G.scene === 'in' ? FLOOR_IN : FLOOR_OUT) - humanH(data.hScale) - 4;
     popScore(G.human.x, headY, mark, isRight ? `+${gained}` : `+${gained} 빗나감`, isRight ? 'ok' : 'ng');
 
     G.results.push({ id: data.id, choice, right: isRight });
@@ -1137,13 +1163,14 @@
     }
     if (h) {
       const feet = G.scene === 'in' ? FLOOR_IN : FLOOR_OUT;
+      const hh = humanH(h.data && h.data.hScale);
       if (G.tagEl) {
-        const p = toStage(h.x + 8, feet - SPRITE_H - 1);
+        const p = toStage(h.x + 8, feet - hh - 1);
         G.tagEl.style.left = p.left + '%';
         G.tagEl.style.top = p.top + '%';
       }
       if (G.bubbleEl) {
-        const p = toStage(h.x + 8, feet - SPRITE_H - 18);
+        const p = toStage(h.x + 8, feet - hh - 18);
         G.bubbleEl.style.left = p.left + '%';
         G.bubbleEl.style.top = p.top + '%';
       }
@@ -1161,7 +1188,7 @@
 
     const entities = [];
     if (h) {
-      entities.push({ kind: 'human', x: h.x, sprite: h.sprite, facing: h.facing, walking: h.walking, mood: h.mood });
+      entities.push({ kind: 'human', x: h.x, sprite: h.sprite, facing: h.facing, walking: h.walking, mood: h.mood, hScale: h.data && h.data.hScale });
     }
     entities.push({ kind: 'cat', x: G.cat.x, facing: G.cat.facing, walking: G.cat.walking, sniffing: G.cat.sniffing > 0 });
 
@@ -1232,6 +1259,7 @@
     };
 
     ui.stage.addEventListener('pointerdown', start);
+    window.addEventListener('resize', () => { if (Scene.refit) Scene.refit(); });
     ui.stage.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
