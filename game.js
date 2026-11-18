@@ -118,7 +118,8 @@
   const humanH = (scale) => SPRITE_H * (scale || 1);
 
   const IMG = {
-    cat: null,
+    cat: null,          // 원본 — 왼쪽을 보는 모습
+    catRight: null,     // 반전본 — 오른쪽을 보는 모습('90' 글자는 바로 서게 다듬음)
     people: {}
   };
 
@@ -570,7 +571,7 @@
     }
 
     function drawCat(x, feetY, facing, t, walking, sniffing) {
-      const img = IMG.cat;
+      const img = facing > 0 ? IMG.catRight : IMG.cat;
       if (!img || !img.complete || !img.naturalWidth) return;
       const h = CAT_H;
       const w = h * (img.naturalWidth / img.naturalHeight);
@@ -587,9 +588,9 @@
       ctx.translate(sx + w / 2, sy + h);
       ctx.rotate(tilt);
       if (sniffing) ctx.translate(0, 2);
-      /* 원본 assets/gugoong.png 는 왼쪽을 보고 있다.
-         왼쪽으로 갈 때는 그대로, 오른쪽으로 갈 때는 좌우 반전해 진행 방향을 본다. */
-      if (facing > 0) ctx.scale(-1, 1);
+      /* 원본 assets/gugoong.png 는 왼쪽을 보고, assets/gugoong-right.png 는
+         같은 그림을 좌우 반전해 '90' 글자만 바로 세운 짝이다.
+         진행 방향을 바라보게 두 장을 골라 쓴다. */
       ctx.drawImage(img, -w / 2, -h, w, h);
       ctx.restore();
 
@@ -1329,6 +1330,7 @@
   /* ─────────────── 초기화 ─────────────── */
   function init() {
     IMG.cat = loadImage('assets/gugoong.png');
+    IMG.catRight = loadImage('assets/gugoong-right.png');
     for (const h of HUMANS) IMG.people[h.sprite] = loadImage(h.sprite);
 
     const best = store.get('gugoong.best', null);
