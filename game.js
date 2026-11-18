@@ -655,6 +655,7 @@
     autoNext: 0,
     trans: null,
     holding: 0,           // -1 왼쪽, 1 오른쪽, 0 정지
+    walkTo: null,         // 탭으로 지정한 목적지
     clock: 0
   };
 
@@ -1056,10 +1057,16 @@
     /* 고양이 이동 */
     if (G.phase === 'play' && !G.trans) {
       let dir = G.holding;
+      // 탭으로 지정한 목적지까지 자동으로 걸어간다
+      if (dir === 0 && G.walkTo != null) {
+        const gapTo = G.walkTo - G.cat.x;
+        if (Math.abs(gapTo) < 2.5) { G.walkTo = null; }
+        else dir = Math.sign(gapTo);
+      }
       // 인간 앞에서는 걸음을 멈추고 마주 본다 (지나치지 않게)
       if (dir !== 0 && G.human && G.human.state === 'idle') {
         const gap = G.human.x - G.cat.x;
-        if (Math.sign(gap) === dir && Math.abs(gap) <= 26) dir = 0;
+        if (Math.sign(gap) === dir && Math.abs(gap) <= 26) { dir = 0; G.walkTo = null; }
       }
       G.cat.walking = dir !== 0;
       if (dir !== 0) {
@@ -1189,19 +1196,37 @@
       if (btn) judge(btn.dataset.judge);
     });
 
-    // 무대 누르고 걷기
+    // 무대 누르고 걷기 / 톡 누르면 그 지점까지 걸어가기
     let pressing = false;
+    let pressAt = 0;
+    let pressX = 0;
+    let moved = 0;
     const start = (e) => {
       if (G.phase !== 'play') return;
       pressing = true;
+      pressAt = Date.now();
+      pressX = e.clientX;
+      moved = 0;
+      G.walkTo = null;
       G.holding = pointerDir(e.clientX);
       e.preventDefault();
     };
     const move = (e) => {
       if (!pressing) return;
+      if (Math.abs(e.clientX - pressX) > 6) moved++;
+      pressX = e.clientX;
       G.holding = pointerDir(e.clientX);
     };
-    const end = () => { pressing = false; G.holding = 0; };
+    const end = () => {
+      if (pressing && Date.now() - pressAt < 260 && moved < 3) {
+        // 짧은 탭 → 누른 지점까지 자동으로 걸어간다
+        const rect = ui.stage.getBoundingClientRect();
+        const logical = ((pressX - rect.left) / rect.width) * VIEW_W;
+        G.walkTo = clamp(G.cam + logical, 8, WORLD[G.scene] - 10);
+      }
+      pressing = false;
+      G.holding = 0;
+    };
 
     ui.stage.addEventListener('pointerdown', start);
     ui.stage.addEventListener('pointermove', move);
