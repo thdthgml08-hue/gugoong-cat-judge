@@ -531,8 +531,8 @@
       const sy = Math.round(feetY - h + bob);
 
       // 그림자
-      ctx.fillStyle = 'rgba(70,45,28,.20)';
-      ctx.fillRect(sx - 1, feetY - 1, Math.max(8, w * 0.7), 2);
+      ctx.fillStyle = 'rgba(70,45,28,.15)';
+      ctx.fillRect(sx + w * 0.15, feetY - 1, Math.max(7, w * 0.62), 2);
 
       ctx.save();
       if (facing < 0) {
@@ -555,8 +555,8 @@
       const sx = Math.round(x);
       const sy = Math.round(feetY - h + bob);
 
-      ctx.fillStyle = 'rgba(70,45,28,.22)';
-      ctx.fillRect(sx + 2, feetY - 1, w * 0.8, 2);
+      ctx.fillStyle = 'rgba(70,45,28,.15)';
+      ctx.fillRect(sx + w * 0.22, feetY - 1, w * 0.6, 2);
 
       ctx.save();
       ctx.translate(sx + w / 2, sy + h);
@@ -1127,7 +1127,10 @@
     G.cam += (camTarget - G.cam) * Math.min(1, dt * 6);
 
     /* 무대 위 DOM (점수/말풍선) 위치 갱신 */
-    for (const p of G.pops) {
+    for (let i = G.pops.length - 1; i >= 0; i--) {
+      const p = G.pops[i];
+      p.life -= dt;
+      if (p.life <= 0 || !p.el.isConnected) { G.pops.splice(i, 1); continue; }
       const pos = toStage(p.wx, p.wy);
       p.el.style.left = pos.left + '%';
       p.el.style.top = pos.top + '%';
