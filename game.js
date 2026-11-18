@@ -1202,7 +1202,7 @@
         G.tagEl.style.top = p.top + '%';
       }
       if (G.bubbleEl) {
-        const p = toStage(h.x + 8, feet - hh - 18);
+        const p = toStage(h.x + 8, feet - hh - 12);
         // 화면 가장자리에서 말풍선이 잘리지 않게 좌우를 붙잡아 둔다
         G.bubbleEl.style.left = clamp(p.left, 16, 84) + '%';
         G.bubbleEl.style.top = p.top + '%';
