@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>구공이 90점 채점소 · 고양이의 인간 심사</title>
-<meta name="description" content="냄새·눈빛·행동으로 인간을 관찰하고 점수 팻말을 들어 채점하는 2D 웹 미니게임. 집사와 지나가는 인간들, 기준은 고양이.">
+<meta name="description" content="집 안과 골목을 걸어 다니며 인간을 관찰하고 점수 팻말을 들어 채점하는 2D 사이드뷰 웹 미니게임. 기준은 고양이.">
 <meta name="theme-color" content="#f4e6cc">
 <meta property="og:title" content="구공이 90점 채점소">
-<meta property="og:description" content="냄새·눈빛·행동으로 인간을 관찰하고 점수 팻말을 들어라. 기준은 고양이.">
+<meta property="og:description" content="집 안과 골목을 걸어 다니며 인간을 채점한다. 냄새·눈빛·행동, 기준은 고양이.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="assets/og-image.png">
 <link rel="icon" href="assets/favicon.png" type="image/png">
@@ -26,18 +26,18 @@
         <img src="assets/gugoong.png" alt="점수판을 든 구공이" id="title-cat-img">
       </div>
       <h1 class="title">구공이 <span class="n90">90</span>점 채점소</h1>
-      <p class="subtitle">인간 심사 · 고양이 기준</p>
+      <p class="subtitle">집 안 → 골목 · 고양이 기준</p>
       <p class="lead">
-        집사와 문 앞을 지나가는 인간들.<br>
-        냄새, 눈빛, 행동으로 관찰하고<br>
+        집 안에서 집사를, 골목에서 지나가는 인간을.<br>
+        직접 걸어가 냄새·눈빛·행동으로 살피고<br>
         점수 팻말을 들어 채점한다.
       </p>
       <div class="title-btns">
         <button id="btn-start" class="btn primary">심사 시작</button>
-        <button id="btn-howto" class="btn ghost">채점 기준</button>
+        <button id="btn-howto" class="btn ghost">조작·기준</button>
       </div>
       <p class="best" id="best-line">최고 기록 · 아직 없다</p>
-      <p class="foot">3일 · 인간 12명 · 소리 있음(끌 수 있음)</p>
+      <p class="foot">3일 · 인간 12명 · 집 안 6 / 골목 6</p>
     </div>
   </section>
 
@@ -47,6 +47,8 @@
       <div class="hud-left">
         <span id="day-label">1일차</span>
         <span class="sep">·</span>
+        <span id="stage-label">집 안</span>
+        <span class="sep">·</span>
         <span id="round-label">1/4</span>
       </div>
       <div class="hud-score">
@@ -54,50 +56,35 @@
         <span class="combo" id="combo" hidden></span>
       </div>
       <div class="hud-right">
-        <button id="btn-help" class="icon-btn" aria-label="채점 기준 보기">?</button>
+        <button id="btn-help" class="icon-btn" aria-label="조작·채점 기준">?</button>
         <button id="btn-mute" class="icon-btn" aria-label="소리 켜기/끄기">🔊</button>
       </div>
     </header>
 
     <div class="stage" id="stage">
-      <canvas id="scene" width="240" height="160" aria-label="거리 풍경"></canvas>
-      <div class="cat-wrap" id="cat-wrap">
-        <img src="assets/gugoong.png" alt="구공이" id="cat-img">
-        <div class="placard" id="placard" aria-hidden="true"><span id="placard-mark">+</span></div>
-      </div>
-      <div class="timebar"><div id="timebar-fill"></div></div>
-      <div class="bubble" id="bubble"><span id="bubble-text"></span></div>
-      <div class="float-score" id="float-score"></div>
-      <div class="day-card" id="day-card">
-        <p id="day-card-text"></p>
-      </div>
+      <canvas id="scene" width="240" height="135" aria-label="집 안과 골목 풍경"></canvas>
+      <div class="world-ui" id="world-ui"></div>
+      <div class="arrow left" id="arrow-left">◀</div>
+      <div class="arrow right" id="arrow-right">▶</div>
+      <div class="day-card" id="day-card"><p id="day-card-text"></p></div>
+      <div class="fade" id="fade"></div>
     </div>
 
-    <div class="who">
-      <div class="who-head">
-        <span class="who-name" id="human-name">인간</span>
-        <span class="tag" id="human-tag"></span>
-      </div>
+    <div class="caption" id="caption">
+      <p class="line hint" id="caption-default">화면 왼쪽·오른쪽을 <b>누르고 있으면</b> 걸어간다. 인간에게 가까이 가면 살필 수 있다.</p>
+    </div>
+
+    <div class="controls">
       <div class="clues" id="clues">
         <button class="chip" data-clue="smell"><span class="ico">👃</span>냄새</button>
         <button class="chip" data-clue="eyes"><span class="ico">👀</span>눈빛</button>
         <button class="chip" data-clue="act"><span class="ico">🐾</span>행동</button>
       </div>
-      <div class="clue-notes" id="clue-notes">
-        <p class="hint">관찰 한 번에 <b>2초</b>가 흐른다. 다 볼지, 눈치로 갈지 골라라.</p>
+      <div class="judge" id="judge">
+        <button class="sign plus" data-judge="plus"><b>+</b><span>합격</span></button>
+        <button class="sign minus" data-judge="minus"><b>−</b><span>감점</span></button>
+        <button class="sign ninety" data-judge="ninety"><b>90</b><span>냉정</span></button>
       </div>
-    </div>
-
-    <div class="judge" id="judge">
-      <button class="sign plus" data-judge="plus"><b>+</b><span>합격</span></button>
-      <button class="sign minus" data-judge="minus"><b>−</b><span>감점</span></button>
-      <button class="sign ninety" data-judge="ninety"><b>90</b><span>냉정</span></button>
-    </div>
-
-    <div class="verdict" id="verdict" hidden>
-      <p class="verdict-text" id="verdict-text"></p>
-      <p class="verdict-why" id="verdict-why"></p>
-      <button id="btn-next" class="btn primary">다음 인간 →</button>
     </div>
   </section>
 
@@ -134,16 +121,17 @@
     </div>
   </section>
 
-  <!-- ───────── 채점 기준 모달 ───────── -->
+  <!-- ───────── 도움말 모달 ───────── -->
   <div class="modal" id="modal-help" hidden>
     <div class="modal-card">
-      <h3>채점 기준</h3>
+      <h3>조작과 채점 기준</h3>
       <ul class="rule-list">
+        <li><span class="mini move">◀▶</span><b>걸어가기</b> — 무대의 왼쪽·오른쪽을 누르고 있으면 구공이가 그쪽으로 걸어간다. 인간에게 가까이 가야 살필 수 있다.</li>
         <li><span class="mini plus">+</span><b>합격</b> — 밥 시간을 지킨다, 동족을 예뻐한다, 조용히 간식을 바친다, 사냥놀이를 해준다.</li>
         <li><span class="mini minus">−</span><b>감점</b> — 자는 데 손댄다, 큰 소리를 낸다, 빈손으로 온다, 츄르를 아낀다, 꼬리를 밟는다.</li>
-        <li><span class="mini ninety">90</span><b>냉정</b> — 미움도 사랑도 아니다. 애정은 있는데 간식이 없는 인간, 말과 손이 다른 인간.</li>
+        <li><span class="mini ninety">90</span><b>냉정</b> — 애정은 있는데 간식이 없는 인간, 말과 손이 다른 인간처럼 +도 −도 아닌 경우.</li>
       </ul>
-      <p class="modal-note">관찰(냄새·눈빛·행동)은 하나에 2초. 인간이 골목을 지나가기 전에 팻말을 들어야 한다.<br>맞히면 <b>+100 냥력</b>(연속이면 보너스), 틀리면 40.</p>
+      <p class="modal-note">집 안에서 두 명, 골목에서 두 명을 채점하면 하루가 끝난다(3일 · 12명).<br>관찰 한 번에 <b>2초</b>가 흐르고, 인간은 자기 시간이 다 되면 떠난다.<br>맞히면 <b>+100 냥력</b>(연속 보너스 최대 +100), 틀리면 40.</p>
       <button id="btn-close-help" class="btn primary">알겠다</button>
     </div>
   </div>

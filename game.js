@@ -1,4 +1,5 @@
-/* 구공이 90점 채점소 — 게임 엔진 */
+/* 구공이 90점 채점소 — v2 사이드뷰 엔진
+   집 안 → 골목, 직접 걸어가 관찰하고 머리 위에 점수를 띄운다. */
 
 (() => {
   'use strict';
@@ -35,7 +36,7 @@
     }
   };
 
-  /* ─────────────── 소리 (Web Audio) ─────────────── */
+  /* ─────────────── 소리 ─────────────── */
   const Sound = (() => {
     let actx = null;
     let on = store.get('gugoong.sound', true) !== false;
@@ -86,10 +87,16 @@
       src.start();
     }
 
+    let stepAt = 0;
     return {
       isOn: () => on,
-      set(onoff) { on = !!onoff; store.set('gugoong.sound', on); },
+      set(v) { on = !!v; store.set('gugoong.sound', on); },
       tap() { tone({ freq: 540, dur: 0.05, type: 'square', vol: 0.025 }); },
+      step(now) {
+        if (now - stepAt < 260) return;
+        stepAt = now;
+        noise(0.05, 0.03, 900);
+      },
       sniff() { noise(0.14, 0.05, 1600); tone({ freq: 300, dur: 0.08, type: 'sine', vol: 0.02, slide: 120 }); },
       slap() { tone({ freq: 160, dur: 0.1, type: 'square', vol: 0.08, slide: -60 }); noise(0.05, 0.04, 700); },
       ok() { [660, 880, 1175].forEach((f, i) => tone({ freq: f, dur: 0.12, type: 'triangle', vol: 0.055, delay: i * 0.065 })); },
@@ -99,20 +106,40 @@
         tone({ freq: 620, dur: 0.11, type: 'triangle', vol: 0.06, slide: 260 });
         tone({ freq: 900, dur: 0.17, type: 'triangle', vol: 0.045, slide: -320, delay: 0.1 });
       },
+      door() { noise(0.25, 0.05, 500); tone({ freq: 180, dur: 0.2, type: 'sine', vol: 0.03, slide: -60 }); },
       win() { [523, 659, 784, 1046].forEach((f, i) => tone({ freq: f, dur: 0.17, type: 'triangle', vol: 0.05, delay: i * 0.1 })); }
     };
   })();
 
-  /* ─────────────── 거리 장면 (캔버스) ─────────────── */
+  /* ─────────────── 이미지 ─────────────── */
+  const SPRITE_H = 46;      // 사람 스프라이트 높이 (논리 픽셀)
+  const CAT_H = 38;
+
+  const IMG = {
+    cat: null,
+    people: {}
+  };
+
+  function loadImage(src) {
+    const img = new Image();
+    img.src = src;
+    return img;
+  }
+
+  /* ─────────────── 무대 ─────────────── */
+  const VIEW_W = 240, VIEW_H = 135;
+  const FLOOR_IN = 118, FLOOR_OUT = 120;
+  const WORLD = { in: 470, out: 600 };
+  const SPOTS = { in: [96, 214, 318, 404], out: [110, 250, 390, 520] };
+
   const Scene = (() => {
     const cv = $('#scene');
     const ctx = cv.getContext('2d');
-    const W = 240, H = 160;
     ctx.imageSmoothingEnabled = false;
 
+    let mode = 'in';
     let theme = DAYS[0].theme;
     let world = null;
-    let clock = 0;
 
     const P = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x | 0, y | 0, w, h); };
 
@@ -132,407 +159,443 @@
       }
     }
 
-    function build(th, seed) {
+    /* ── 방 안 ── */
+    function buildInterior(seed) {
       const r = mulberry32(seed);
       const far = [];
       let x = -6;
-      while (x < W + 12) {
+      while (x < WORLD.in + 20) {
+        const w = 18 + Math.round(r() * 16);
+        far.push({ x, w, h: 24 + Math.round(r() * 30), tone: Math.round(r() * 2) });
+        x += w + 2;
+      }
+      const dust = [];
+      for (let i = 0; i < 26; i++) {
+        dust.push({ x: r() * WORLD.in, y: 26 + r() * 76, s: 0.4 + r() });
+      }
+      return { far, dust };
+    }
+
+    function drawInterior(cam, t) {
+      const wallTop = '#f2e0c4', wallStripe = '#f6e8d0';
+      ctx.fillStyle = wallTop;
+      ctx.fillRect(0, 0, VIEW_W, 104);
+
+      // 벽지 줄무늬
+      const stripeOffset = -(cam % 16);
+      for (let x = stripeOffset; x < VIEW_W; x += 16) {
+        P(x, 0, 2, 96, wallStripe);
+      }
+      // 벽지 꽃무늬
+      for (let wx = Math.floor(cam / 24) * 24; wx < cam + VIEW_W + 24; wx += 24) {
+        const sx = wx - cam;
+        P(sx, 22, 2, 2, 'rgba(190,150,110,.35)');
+        P(sx + 1, 46, 2, 2, 'rgba(190,150,110,.28)');
+        P(sx + 5, 70, 2, 2, 'rgba(190,150,110,.28)');
+      }
+
+      // 창문 (세계 좌표 x 34..116)
+      const wx = 34 - cam;
+      if (wx < VIEW_W && wx + 84 > 0) {
+        P(wx - 4, 22, 92, 70, '#c9a273');
+        const g = ctx.createLinearGradient(0, 26, 0, 86);
+        g.addColorStop(0, theme.skyTop);
+        g.addColorStop(1, theme.skyBottom);
+        ctx.fillStyle = g;
+        ctx.fillRect(wx, 26, 84, 60);
+        // 창밖
+        circle(wx + 62, 42, 5, theme.sun);
+        P(wx + 8, 66, 30, 12, 'rgba(255,250,235,.35)');
+        P(wx + 40, 60, 26, 18, 'rgba(255,250,235,.25)');
+        // 창틀
+        P(wx + 40, 26, 3, 60, '#c9a273');
+        P(wx, 54, 84, 3, '#c9a273');
+        P(wx - 2, 24, 88, 2, '#e0be93');
+        // 커튼
+        P(wx - 10, 20, 12, 68, '#d8a08a');
+        P(wx - 10, 20, 12, 3, '#c2886f');
+        P(wx + 82, 20, 12, 68, '#d8a08a');
+        P(wx + 82, 20, 12, 3, '#c2886f');
+        // 창턱 화분
+        P(wx + 6, 84, 10, 6, '#b8763f');
+        P(wx + 8, 78, 2, 7, '#4f7a4a');
+        P(wx + 5, 80, 4, 2, '#5f8a55');
+        P(wx + 11, 77, 4, 2, '#6c9a5e');
+      }
+
+      // 걸린 그림
+      const p1 = 130 - cam;
+      P(p1, 34, 26, 20, '#8a6a4a');
+      P(p1 + 2, 36, 22, 16, '#e8d3ae');
+      P(p1 + 6, 40, 8, 8, '#9c8b6a');
+      const p2 = 236 - cam;
+      P(p2, 30, 20, 26, '#8a6a4a');
+      P(p2 + 2, 32, 16, 22, '#dfe7d8');
+
+      // 벽 하단 몰딩
+      P(0, 96, VIEW_W, 3, '#d3b38a');
+      P(0, 99, VIEW_W, 5, '#bf9a6e');
+      P(0, 103, VIEW_W, 1, 'rgba(90,60,35,.22)');
+
+      // 바닥
+      P(0, 104, VIEW_W, 31, '#c89a68');
+      for (let wx2 = Math.floor(cam / 22) * 22; wx2 < cam + VIEW_W + 22; wx2 += 22) {
+        P(wx2 - cam, 104, 1, 31, 'rgba(120,80,45,.12)');
+      }
+      for (let y = 112; y < 135; y += 9) P(0, y, VIEW_W, 1, 'rgba(120,80,45,.08)');
+
+      // 러그
+      const rx = 150 - cam;
+      P(rx, 108, 130, 22, '#c98a7a');
+      P(rx + 5, 111, 120, 16, '#e6bda9');
+      P(rx + 14, 114, 102, 10, '#c98a7a');
+
+      // 소파
+      const sx = 262 - cam;
+      P(sx, 74, 74, 34, '#7d9c8a');
+      P(sx + 4, 78, 66, 18, '#8fae9a');
+      P(sx, 100, 74, 12, '#6b8a78');
+      P(sx - 4, 78, 6, 30, '#6b8a78');
+      P(sx + 72, 78, 6, 30, '#6b8a78');
+      P(sx + 8, 92, 26, 8, '#a9c4b2');
+      P(sx + 40, 92, 26, 8, '#a9c4b2');
+
+      // 탁자
+      const tx = 186 - cam;
+      P(tx, 100, 44, 5, '#a9743f');
+      P(tx + 3, 105, 4, 12, '#8a5c30');
+      P(tx + 37, 105, 4, 12, '#8a5c30');
+      P(tx + 12, 96, 6, 5, '#e8d6b4');
+      P(tx + 14, 94, 3, 3, '#d9c39c');
+
+      // 캣타워
+      const cx2 = 350 - cam;
+      P(cx2, 58, 26, 60, '#c9b48f');
+      P(cx2 - 4, 112, 34, 6, '#b09a75');
+      P(cx2 + 2, 92, 22, 6, '#b09a75');
+      P(cx2 + 4, 84, 6, 10, '#a89070');
+      P(cx2 + 18, 74, 6, 10, '#a89070');
+      P(cx2 + 3, 52, 20, 7, '#d9c8a5');
+
+      // 책장
+      const bx = 392 - cam;
+      P(bx, 62, 34, 56, '#96683c');
+      for (let i = 0; i < 3; i++) {
+        P(bx + 2, 66 + i * 17, 30, 14, '#7c5330');
+        for (let j = 0; j < 6; j++) {
+          P(bx + 4 + j * 5, 68 + i * 17, 3, 10, ['#b1544c', '#5f8a86', '#c99b5a', '#8a7bb5'][(i + j) % 4]);
+        }
+      }
+
+      // 문 (골목으로 나가는 문)
+      const dx = 432 - cam;
+      P(dx, 56, 38, 62, '#9a6b3c');
+      P(dx + 3, 60, 32, 58, '#b07f4a');
+      P(dx + 6, 64, 26, 22, '#8a5c30');
+      P(dx + 8, 66, 22, 18, '#c79a63');
+      P(dx + 30, 90, 3, 3, '#f0d79a');
+      P(0, 0, 0, 0, '#000');
+
+      // 먼지 (빛줄기 속)
+      for (const d of world.dust) {
+        const x = d.x - cam * 0.9;
+        if (x < -4 || x > VIEW_W + 4) continue;
+        const y = d.y + Math.sin(t * 0.0006 + d.x) * 3;
+        P(x, y, 1, 1, 'rgba(255,255,255,.45)');
+      }
+
+      // 햇빛
+      ctx.fillStyle = 'rgba(255,236,190,0.16)';
+      ctx.beginPath();
+      ctx.moveTo(wx + 10, 26);
+      ctx.lineTo(wx + 60, 26);
+      ctx.lineTo(wx + 120, 135);
+      ctx.lineTo(wx + 20, 135);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    /* ── 골목 ── */
+    function buildAlley(seed) {
+      const r = mulberry32(seed);
+      const far = [];
+      let x = -6;
+      while (x < WORLD.out + 30) {
         const w = 16 + Math.round(r() * 16);
-        const h = 24 + Math.round(r() * 36);
-        far.push({ x, w, h, tone: Math.round(r() * 2) });
-        x += w + 1 + Math.round(r() * 3);
+        far.push({ x, w, h: 20 + Math.round(r() * 30), tone: Math.round(r() * 2) });
+        x += w + 2;
       }
       const near = [];
       x = -10;
-      while (x < W + 10) {
-        const w = 26 + Math.round(r() * 22);
-        const h = 26 + Math.round(r() * 16);
+      while (x < WORLD.out + 39) {
+        const w = 26 + Math.round(r() * 20);
         near.push({
-          x, w, h,
+          x, w, h: 26 + Math.round(r() * 14),
           awning: r() > 0.45,
           awningColor: ['#c96f5a', '#5f8a86', '#c99b5a', '#8a7bb5'][Math.round(r() * 3)],
           door: r() > 0.3,
-          sign: r() > 0.6
+          sign: r() > 0.55
         });
         x += w + 2;
       }
       const clouds = [];
-      for (let i = 0; i < 4; i++) {
-        clouds.push({ x: r() * W, y: 8 + r() * 30, s: 0.8 + r() * 0.8, v: 1.2 + r() * 1.6 });
-      }
+      for (let i = 0; i < 5; i++) clouds.push({ x: r() * 300, y: 8 + r() * 26, s: 0.8 + r() * 0.8, v: 1.2 + r() * 1.6 });
       const speckles = [];
-      for (let i = 0; i < 110; i++) {
-        const y = 117 + Math.floor(r() * 19);
-        const near = (y - 117) / 19;
-        speckles.push({
-          x: Math.floor(r() * W),
-          y,
-          w: near > 0.5 ? 2 : 1,
-          c: r() > 0.5 ? 'rgba(120,95,65,.13)' : 'rgba(255,250,235,.28)'
-        });
+      for (let i = 0; i < 150; i++) {
+        const y = 96 + Math.floor(r() * 26);
+        speckles.push({ x: Math.floor(r() * (WORLD.out + 40)), y, w: (y - 96) / 26 > 0.5 ? 2 : 1, c: r() > 0.5 ? 'rgba(120,95,65,.13)' : 'rgba(255,250,235,.30)' });
       }
-      return { far, near, clouds, speckles, seed };
+      return { far, near, clouds, speckles };
     }
 
-    function setDay(day, seed) {
-      theme = day.theme;
-      world = build(theme, seed);
-      clock = 0;
-    }
-
-    function drawSky() {
-      const g = ctx.createLinearGradient(0, 0, 0, 100);
+    function drawAlley(cam, t) {
+      const g = ctx.createLinearGradient(0, 0, 0, 70);
       g.addColorStop(0, theme.skyTop);
       g.addColorStop(1, theme.skyBottom);
       ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, 110);
+      ctx.fillRect(0, 0, VIEW_W, 76);
 
-      // 해 / 달
-      circle(theme.sunX, theme.sunY, 9, theme.sun);
-      circle(theme.sunX, theme.sunY, 7, shade(theme.sun, 8));
+      circle(theme.sunX + 10, theme.sunY, 7, theme.sun);
 
-      // 구름
       for (const c of world.clouds) {
-        c.x -= c.v * 0.06;
-        if (c.x < -30) c.x = W + 12;
-        const cx = Math.round(c.x), cy = Math.round(c.y);
-        const s = c.s;
+        c.x -= c.v * 0.03;
+        if (c.x < -34) c.x = WORLD.out;
+        const sx = c.x - cam * 0.2;
+        if (sx < -34 || sx > VIEW_W + 10) continue;
         ctx.fillStyle = 'rgba(255,252,244,0.85)';
-        ctx.fillRect(cx, cy, Math.round(14 * s), Math.round(4 * s));
-        ctx.fillRect(cx + 3, cy - 3, Math.round(8 * s), Math.round(4 * s));
-        ctx.fillRect(cx + 8, cy - 1, Math.round(6 * s), Math.round(3 * s));
+        P(sx, c.y, 14 * c.s, 4 * c.s, 'rgba(255,252,244,.85)');
+        P(sx + 3, c.y - 3, 8 * c.s, 4 * c.s, 'rgba(255,252,244,.85)');
+        P(sx + 8, c.y - 1, 6 * c.s, 3 * c.s, 'rgba(255,252,244,.85)');
       }
-    }
 
-    function drawFar() {
-      const base = 99;
+      // 먼 건물
       for (const b of world.far) {
-        const top = base - b.h;
-        const tone = [theme.far, shade(theme.far, -9), shade(theme.far, 7)][b.tone % 3];
-        P(b.x, top, b.w, b.h, tone);
-        P(b.x, top, b.w, 2, shade(tone, 13));
-        P(b.x + b.w - 1, top, 1, b.h, shade(tone, -8));
-        // 창문
+        const sx = b.x - cam * 0.38;
+        if (sx + b.w < -4 || sx > VIEW_W + 4) continue;
+        const top = 76 - b.h;
+        const tone = [shade(theme.far, 6), shade(theme.far, -4), shade(theme.far, 14)][b.tone % 3];
+        P(sx, top, b.w, b.h, tone);
+        P(sx, top, b.w, 2, shade(tone, 13));
         const cols = Math.max(1, Math.floor((b.w - 4) / 6));
         const rows = Math.max(1, Math.floor((b.h - 8) / 7));
         for (let i = 0; i < cols; i++) {
           for (let j = 0; j < rows; j++) {
-            const wx = b.x + 3 + i * 6;
-            const wy = top + 5 + j * 7;
             const lit = theme.skyTop === '#6b5a86' && ((i * 7 + j * 3 + b.x) % 5 < 2);
-            P(wx, wy, 3, 3, lit ? '#ffd98a' : shade(tone, -22));
+            P(sx + 3 + i * 6, top + 5 + j * 7, 3, 3, lit ? '#ffd98a' : shade(tone, -14));
           }
         }
       }
-      // 원경 안개 — 깊이감
-      ctx.fillStyle = 'rgba(255,246,232,0.30)';
-      ctx.fillRect(0, 0, W, 101);
-    }
+      ctx.fillStyle = 'rgba(255,246,232,0.12)';
+      ctx.fillRect(0, 0, VIEW_W, 80);
 
-    function drawNear() {
-      const base = 106;
-      world.near.forEach((b, idx) => {
+      // 가까운 상가
+      for (const b of world.near) {
+        const sx = b.x - cam * 0.72;
+        if (sx + b.w < -6 || sx > VIEW_W + 6) continue;
+        const base = 88;
         const top = base - b.h;
-        const body = [theme.wall, shade(theme.wall, -7), shade(theme.wall, 5)][idx % 3];
-        P(b.x, top, b.w, b.h, body);
-        // 지붕 + 처마 그늘
-        P(b.x - 1, top - 1, b.w + 2, 3, theme.roof);
-        P(b.x - 1, top + 2, b.w + 2, 2, 'rgba(58,38,24,.10)');
-        P(b.x + b.w - 2, top + 3, 2, b.h - 3, shade(body, -10));
-
-        // 차양
+        P(sx, top, b.w, b.h, theme.wall);
+        P(sx - 1, top - 1, b.w + 2, 3, theme.roof);
+        P(sx - 1, top + 2, b.w + 2, 2, 'rgba(58,38,24,.10)');
         if (b.awning) {
-          const ay = top + 4;
           for (let i = 0; i < b.w - 2; i += 4) {
-            P(b.x + 1 + i, ay, 2, 5, b.awningColor);
-            P(b.x + 3 + i, ay, 2, 5, '#f3e6cd');
+            P(sx + 1 + i, top + 4, 2, 5, b.awningColor);
+            P(sx + 3 + i, top + 4, 2, 5, '#f3e6cd');
           }
-          for (let i = 0; i < b.w - 2; i += 4) P(b.x + 1 + i, ay + 5, 2, 1, shade(b.awningColor, -20));
         }
-
-        // 간판
         if (b.sign) {
-          const sw = Math.min(b.w - 12, 16);
-          P(b.x + 4, top + (b.awning ? 11 : 8), sw, 6, shade(b.awningColor, -6));
-          P(b.x + 6, top + (b.awning ? 13 : 10), 3, 2, '#f8efdb');
-          P(b.x + 11, top + (b.awning ? 13 : 10), 5, 2, '#f8efdb');
+          P(sx + 4, top + 11, Math.min(b.w - 12, 14), 6, shade(b.awningColor, -6));
+          P(sx + 6, top + 13, 3, 2, '#f8efdb');
+          P(sx + 11, top + 13, 4, 2, '#f8efdb');
         }
-
-        // 쇼윈도
         if (b.w > 28) {
-          const wx = b.x + 3, wy = base - 22, ww = Math.min(b.w - 18, 16), wh = 14;
-          P(wx - 1, wy - 1, ww + 2, wh + 2, shade(body, -20));
-          P(wx, wy, ww, wh, 'rgba(255,250,232,.62)');
-          P(wx + Math.floor(ww / 2), wy, 1, wh, shade(body, -14));
-          P(wx, wy + wh - 5, ww, 5, 'rgba(255,226,175,.62)');
-          P(wx, wy, ww, 1, 'rgba(255,255,255,.55)');
-          P(wx + 2, wy + 4, 3, 3, 'rgba(255,255,255,.35)');
+          const wx = sx + 3, wy = base - 20, ww = Math.min(b.w - 18, 14);
+          P(wx - 1, wy - 1, ww + 2, 14, shade(theme.wall, -20));
+          P(wx, wy, ww, 12, 'rgba(255,250,232,.62)');
+          P(wx + Math.floor(ww / 2), wy, 1, 12, shade(theme.wall, -14));
+          P(wx, wy + 8, ww, 4, 'rgba(255,226,175,.62)');
         }
-
-        // 문
         if (b.door) {
-          const dx = b.x + b.w - 12;
-          P(dx - 1, base - 21, 10, 21, shade(body, -26));
-          P(dx, base - 20, 8, 20, shade(theme.roof, 6));
-          P(dx + 1, base - 19, 6, 7, 'rgba(255,240,210,.30)');
-          P(dx + 6, base - 11, 1, 2, '#f0d79a');
+          const dx2 = sx + b.w - 11;
+          P(dx2 - 1, base - 19, 9, 19, shade(theme.wall, -26));
+          P(dx2, base - 18, 7, 18, shade(theme.roof, 6));
         }
-      });
-
-      P(0, 105, W, 11, theme.garden || '#4f7b4b');
-      // 울타리 + 수풀
-      for (let x = 0; x < W; x += 2) {
-        const h = 2 + ((x * 7) % 4);
-        P(x, 105 - h, 2, h, (x / 2) % 3 === 0 ? '#5f8f58' : '#4f7b4b');
       }
-      for (let x = 2; x < W; x += 15) {
-        P(x, 103, 2, 13, '#8a6a48');
+
+      // 보도
+      P(0, 88, VIEW_W, 47, theme.ground);
+      ctx.fillStyle = 'rgba(90,70,50,0.10)';
+      ctx.fillRect(0, 88, VIEW_W, 47);
+      ctx.fillStyle = 'rgba(45,70,40,0.12)';
+      ctx.fillRect(0, 88, VIEW_W, 5);
+      for (const s of world.speckles) {
+        const sx = s.x - cam;
+        if (sx < -2 || sx > VIEW_W + 2) continue;
+        if (s.y < 88) continue;
+        P(sx, s.y, s.w, 1, s.c);
       }
-      P(0, 105, W, 1, 'rgba(40,70,40,.35)');
-      ctx.fillStyle = 'rgba(45,60,35,0.18)';
-      ctx.fillRect(0, 116, W, 3);
+      P(0, 112, VIEW_W, 2, shade(theme.ground, -14));
+      P(0, 134, VIEW_W, 1, 'rgba(58,38,24,.16)');
 
-      P(0, 104, W, 1, 'rgba(58,38,24,.12)');
-    }
+      // 담장·수풀
+      for (let wx2 = Math.floor((cam - 10) / 2) * 2; wx2 < cam + VIEW_W + 10; wx2 += 2) {
+        const sx = wx2 - cam;
+        const h = 4 + ((wx2 * 5) % 4);
+        P(sx, 88 - h, 2, h, wx2 % 10 === 0 ? '#5f8f58' : '#4c7748');
+      }
+      P(0, 82, VIEW_W, 1, 'rgba(58,38,24,.10)');
+      P(0, 88, VIEW_W, 1, 'rgba(40,60,35,.30)');
 
-    function drawGround() {
-      P(0, 105, W, 33, theme.ground);
-      // 수풀 그늘
-      ctx.fillStyle = 'rgba(45,70,40,0.13)';
-      ctx.fillRect(0, 116, W, 5);
-      // 자갈·먼지 얼룩
-      for (const s of world.speckles) P(s.x, s.y, s.w, 1, s.c);
-      // 작은 돌과 마른 나뭇잎
-      P(64, 129, 3, 2, '#b3a68f');
-      P(65, 131, 2, 1, '#a3957e');
-      P(196, 127, 2, 1, '#b57a4a');
-      P(197, 128, 3, 1, '#c98a4a');
-      P(58, 120, 2, 1, '#c98a4a');
-      // 물웅덩이
-      P(84, 128, 9, 3, 'rgba(150,170,180,.30)');
-      P(86, 127, 5, 1, 'rgba(190,210,215,.35)');
-      // 연석
-      P(0, 136, W, 2, shade(theme.ground, -16));
-      P(0, 138, W, 1, 'rgba(58,38,24,.16)');
-    }
+      // 나무 상자 더미 / 자전거 / 쓰레기통
+      const bx2 = 150 - cam;
+      if (bx2 > -30 && bx2 < VIEW_W) {
+        P(bx2, 116, 13, 8, '#c09a68');
+        P(bx2 + 1, 115, 11, 1, '#a37d4e');
+        P(bx2 + 6, 116, 2, 8, '#e6d3ae');
+        P(bx2 + 3, 108, 10, 7, '#c8a271');
+        P(bx2 + 7, 108, 2, 7, '#e6d3ae');
+      }
+      const bike = 214 - cam;
+      if (bike > -40 && bike < VIEW_W + 10) {
+        circle(bike + 6, 126, 5, '#5b5348');
+        circle(bike + 6, 126, 3, theme.ground);
+        circle(bike + 20, 126, 5, '#5b5348');
+        circle(bike + 20, 126, 3, theme.ground);
+        P(bike + 5, 120, 16, 1, '#7d7264');
+        P(bike + 6, 114, 1, 7, '#7d7264');
+        P(bike + 15, 112, 8, 1, '#7d7264');
+        P(bike + 20, 112, 1, 8, '#7d7264');
+      }
+      const bin = 84 - cam;
+      if (bin > -20 && bin < VIEW_W + 10) {
+        P(bin, 116, 9, 12, '#7f8a76');
+        P(bin - 1, 114, 11, 3, '#66705f');
+        P(bin + 2, 120, 5, 1, 'rgba(255,255,255,.25)');
+      }
 
-    function drawProps() {
-      const sway = Math.sin(clock * 0.002) * 0.7;
-
-      // 가로등 (보도 쪽으로 뻗은 팔)
-      P(212, 66, 2, 72, '#6f6659');
-      P(202, 66, 12, 2, '#6f6659');
-      P(199, 68, 7, 5, '#f4d78a');
-      P(199, 73, 7, 1, '#d9b461');
-      circle(202, 70, 6, 'rgba(255,232,160,.18)');
-
+      // 가로등
+      const lx = 300 - cam;
+      if (lx > -20 && lx < VIEW_W + 20) {
+        P(lx, 52, 2, 66, '#6f6659');
+        P(lx - 12, 52, 14, 2, '#6f6659');
+        P(lx - 15, 54, 7, 5, '#f4d78a');
+        P(lx - 15, 59, 7, 1, '#d9b461');
+        circle(lx - 12, 56, 6, 'rgba(255,232,160,.16)');
+      }
       // 우편함
-      P(13, 117, 12, 15, '#7f9c8a');
-      P(13, 117, 12, 3, '#5f7a6a');
-      P(16, 123, 6, 2, '#efe9d8');
-      P(18, 132, 2, 6, '#5f7a6a');
-
-      // 화분 (인간과 고양이 사이)
-      P(126, 127, 10, 7, '#b8763f');
-      P(125, 125, 12, 3, '#cf8f52');
-      P(130 + sway, 116, 2, 10, '#4f7a4a');
-      P(126 + sway, 118, 4, 2, '#5f8a55');
-      P(132 + sway, 114, 4, 2, '#6c9a5e');
-      P(129 + sway, 111, 3, 2, '#6c9a5e');
-
-      // 길고양이 밥그릇
-      P(44, 132, 9, 4, '#c8c0a8');
-      P(45, 133, 7, 2, '#8a7a5a');
-
-      // 떨어지는 잎
-      for (let i = 0; i < 3; i++) {
-        const t = clock * 0.00018 + i * 2.1;
-        const lx = 30 + ((t * 26 + i * 71) % 190);
-        const ly = 96 + Math.sin(t * 5 + i) * 4 + ((t * 7 + i * 13) % 12);
-        P(lx, ly, 2, 1, i % 2 ? '#c98a4a' : '#b5734a');
+      const mx = 40 - cam;
+      if (mx > -20 && mx < VIEW_W) {
+        P(mx, 100, 10, 13, '#7f9c8a');
+        P(mx, 100, 10, 3, '#5f7a6a');
+        P(mx + 2, 105, 5, 2, '#efe9d8');
+        P(mx + 4, 113, 2, 5, '#5f7a6a');
+      }
+      // 화분
+      const px2 = 470 - cam;
+      if (px2 > -20 && px2 < VIEW_W + 20) {
+        P(px2, 112, 10, 7, '#b8763f');
+        P(px2 - 1, 110, 12, 3, '#cf8f52');
+        const sw = Math.sin(t * 0.002) * 0.7;
+        P(px2 + 5 + sw, 100, 2, 11, '#4f7a4a');
+        P(px2 + 1 + sw, 102, 4, 2, '#5f8a55');
+        P(px2 + 7 + sw, 99, 4, 2, '#6c9a5e');
+      }
+      // 지나가는 길고양이
+      const kat = 350 - cam;
+      if (kat > -30 && kat < VIEW_W + 30) {
+        const walk = Math.sin(t * 0.0011) * 26;
+        const kx = kat + walk;
+        P(kx, 120, 12, 6, '#9c8b78');
+        P(kx + 10, 116, 6, 6, '#9c8b78');
+        P(kx + 11, 113, 2, 3, '#9c8b78');
+        P(kx + 15, 113, 2, 3, '#9c8b78');
+        P(kx + 14, 118, 1, 1, '#3a2f28');
+        P(kx, 126, 2, 3, '#8a7a68');
+        P(kx + 9, 126, 2, 3, '#8a7a68');
       }
 
-      // 참새 (낮에만)
-      if (theme.skyTop === '#a9d8e8') {
-        const bx = 40 + ((clock * 0.006) % 200);
-        const by = 52 + Math.sin(clock * 0.003) * 3;
-        P(bx, by, 3, 2, '#6b5a4a');
-        P(bx + 3, by - 1, 1, 1, '#6b5a4a');
-      }
-    }
-
-    function drawSill() {
-      P(0, 139, W, 21, '#b0814f');
-      P(0, 139, W, 3, '#d3a878');
-      P(0, 142, W, 1, 'rgba(90,55,30,.22)');
-      for (let x = 6; x < W; x += 18) {
-        P(x, 145, 1, 10, 'rgba(90,55,30,.10)');
-      }
-      // 창턱 위 소품 (왼쪽) — 화초
-      P(4, 148, 10, 8, '#a96a3c');
-      P(3, 146, 12, 3, '#c98650');
-      const sw = Math.sin(clock * 0.0016) * 0.8;
-      P(8 + sw, 135, 2, 11, '#4f7a4a');
-      P(5 + sw, 137, 5, 2, '#5f8a55');
-      P(11 + sw, 134, 5, 2, '#6c9a5e');
-      P(8 + sw, 131, 3, 2, '#6c9a5e');
-      P(11 + sw, 129, 2, 2, '#6c9a5e');
-      // 창턱 위 컵 (고양이 발치)
-      P(120, 150, 7, 7, '#f2e7d2');
-      P(119, 149, 9, 2, '#fbf3e3');
-      P(120, 157, 7, 1, 'rgba(90,55,30,.18)');
-      P(127, 151, 2, 3, '#f2e7d2');
-      P(122, 150, 3, 1, 'rgba(120,80,50,.35)');
-    }
-
-    /* ── 인간 픽셀 스프라이트 ── */
-    const ICONS = {
-      heart: [' ## ## ', '#######', '#######', ' ##### ', '  ###  ', '   #   '],
-      drop: ['   #   ', '  ###  ', ' ##### ', '#######', '#######', ' ##### ', '  ###  '],
-      q: [' ### ', '#   #', '    #', '   # ', '  #  ', '     ', '  #  ']
-    };
-
-    function drawIcon(map, x, y, color) {
-      ctx.fillStyle = color;
-      for (let r = 0; r < map.length; r++) {
-        for (let c = 0; c < map[r].length; c++) {
-          if (map[r][c] === '#') ctx.fillRect(x + c, y + r, 1, 1);
-        }
+      // 저녁 물결
+      if (theme.skyTop === '#6b5a86') {
+        ctx.fillStyle = 'rgba(120,60,80,0.12)';
+        ctx.fillRect(0, 60, VIEW_W, 75);
       }
     }
 
-    function drawHuman(h) {
-      const look = h.look;
-      const bx = Math.round(h.x);
-      const feetY = 133;
-      const moving = h.moving;
-      const swing = moving ? Math.round(Math.sin(h.phase * 2) * 1.5) : 0;
-      const bob = moving ? (Math.sin(h.phase * 2) > 0 ? 0 : 1) : (Math.sin(clock * 0.004) > 0 ? 0 : 1);
-      const top = feetY - 32 + bob;
+    function drawPerson(key, x, feetY, facing, t, walking) {
+      const img = IMG.people[key];
+      if (!img || !img.complete || !img.naturalWidth) return;
+      const h = SPRITE_H;
+      const w = h * (img.naturalWidth / img.naturalHeight);
+      const bob = walking ? (Math.sin(t * 0.012) > 0 ? 0 : 1) : (Math.sin(t * 0.004) > 0 ? 0 : 1);
+      const sx = Math.round(x);
+      const sy = Math.round(feetY - h + bob);
 
       // 그림자
-      ctx.fillStyle = 'rgba(70,45,28,.16)';
-      ctx.fillRect(bx + 1, feetY - 1, 12, 2);
+      ctx.fillStyle = 'rgba(70,45,28,.20)';
+      ctx.fillRect(sx - 1, feetY - 1, Math.max(8, w * 0.7), 2);
 
       ctx.save();
-      ctx.translate(bx + 7, 0);
-      ctx.scale(h.dir, 1);
-      ctx.translate(-7, 0);
-
-      const skin = look.skin, hair = look.hair, shirt = look.shirt, pants = look.pants;
-      const y = top;
-
-      // 다리
-      P(3 + swing, y + 23, 3, 9, pants);
-      P(8 - swing, y + 23, 3, 9, pants);
-      P(3 + swing, y + 30, 3, 2, '#3b3029');
-      P(8 - swing, y + 30, 3, 2, '#3b3029');
-
-      // 몸통
-      P(2, y + 10, 10, 13, shirt);
-      P(2, y + 10, 10, 2, shade(shirt, -18));
-      P(6, y + 10, 3, 3, shade(shirt, 20));
-
-      // 팔
-      P(0, y + 11, 2, 9, shirt);
-      P(12, y + 11, 2, 9, shirt);
-      P(0, y + 19, 2, 2, skin);
-      P(12, y + 19, 2, 2, skin);
-
-      // 머리
-      P(3, y + 1, 9, 9, skin);
-      P(3, y + 9, 9, 1, shade(skin, -14));
-
-      // 헤어
-      if (look.hairStyle === 'short') {
-        P(2, y + 1, 11, 3, hair);
-        P(2, y + 3, 2, 3, hair);
-        P(11, y + 3, 2, 3, hair);
-        P(4, y + 3, 7, 1, hair);
-      } else if (look.hairStyle === 'long') {
-        P(1, y + 1, 12, 3, hair);
-        P(1, y + 3, 2, 11, hair);
-        P(11, y + 3, 2, 11, hair);
-        P(5, y + 2, 6, 1, hair);
-      } else if (look.hairStyle === 'bun') {
-        P(2, y + 1, 11, 3, hair);
-        P(2, y + 3, 2, 2, hair);
-        P(11, y + 3, 2, 2, hair);
-        P(6, y - 2, 4, 3, hair);
-      } else if (look.hairStyle === 'cap') {
-        P(2, y - 1, 11, 3, '#4a6fa5');
-        P(1, y + 2, 13, 1, '#3a5a88');
-        P(3, y + 3, 2, 1, hair);
-        P(10, y + 3, 2, 1, hair);
+      if (facing < 0) {
+        ctx.translate(sx + w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, sy, w, h);
       } else {
-        P(4, y + 1, 7, 1, hair);
+        ctx.drawImage(img, sx, sy, w, h);
       }
+      ctx.restore();
+    }
 
-      // 얼굴
-      P(5, y + 5, 1, 2, '#2b2018');
-      P(9, y + 5, 1, 2, '#2b2018');
-      P(7, y + 8, 2, 1, '#9a6250');
-      if (h.blush) { P(4, y + 7, 1, 1, '#e0857d'); P(10, y + 7, 1, 1, '#e0857d'); }
+    function drawCat(x, feetY, facing, t, walking, sniffing) {
+      const img = IMG.cat;
+      if (!img || !img.complete || !img.naturalWidth) return;
+      const h = CAT_H;
+      const w = h * (img.naturalWidth / img.naturalHeight);
+      const bob = walking ? (Math.sin(t * 0.014) > 0 ? 0 : 1) : (Math.sin(t * 0.003) > 0 ? 0 : 1);
+      const tilt = walking ? Math.sin(t * 0.014) * 0.02 : 0;
+      const sx = Math.round(x);
+      const sy = Math.round(feetY - h + bob);
 
-      // 소품
-      if (look.acc === 'bag') {
-        P(-3, y + 15, 4, 7, '#8a5a38');
-        P(-2, y + 16, 2, 5, '#a3703f');
-        P(-1, y + 10, 1, 6, '#5a3a22');
-      } else if (look.acc === 'phone') {
-        P(11, y + 8, 3, 4, skin);
-        P(12, y + 4, 2, 5, '#2b2b33');
-      } else if (look.acc === 'box') {
-        P(0, y + 16, 14, 8, '#c09a68');
-        P(1, y + 15, 12, 1, '#a37d4e');
-        P(6, y + 16, 2, 8, '#e6d3ae');
-        P(2, y + 19, 3, 1, '#a37d4e');
-      } else if (look.acc === 'feather') {
-        P(12, y + 10, 1, 8, '#7a5a3a');
-        P(11, y + 6, 3, 5, '#e8c26a');
-        P(12, y + 5, 2, 2, '#f0d58a');
-      } else if (look.acc === 'camera') {
-        P(4, y + 13, 7, 4, '#2b2b33');
-        P(6, y + 14, 3, 2, '#7d93b5');
-        P(3, y + 15, 2, 2, skin);
-        P(10, y + 15, 2, 2, skin);
-      }
+      ctx.fillStyle = 'rgba(70,45,28,.22)';
+      ctx.fillRect(sx + 2, feetY - 1, w * 0.8, 2);
 
+      ctx.save();
+      ctx.translate(sx + w / 2, sy + h);
+      ctx.rotate(tilt);
+      if (sniffing) ctx.translate(0, 2);
+      ctx.drawImage(img, -w / 2, -h, w, h);
       ctx.restore();
 
-      // 반응 아이콘
-      if (h.mood) {
-        const map = ICONS[h.mood.map] || null;
-        const color = h.mood.color;
-        if (map) {
-          const w = map[0].length;
-          drawIcon(map, bx + 7 - Math.floor(w / 2), top - 9 + Math.sin(clock * 0.006) * 1, color);
+      // 걷기 먼지
+      if (walking) {
+        const ph = (t * 0.02) % 1;
+        if (ph > 0.6) {
+          ctx.fillStyle = 'rgba(220,200,170,.6)';
+          ctx.fillRect(sx + (facing > 0 ? -3 : w), feetY - 3 - Math.floor(ph * 4), 2, 2);
         }
       }
     }
 
-    function draw(now, humans) {
-      clock = now;
-      ctx.clearRect(0, 0, W, H);
-      drawSky();
-      drawFar();
-      drawNear();
-      drawGround();
-      drawProps();
-      for (const h of humans) drawHuman(h);
-      drawSill();
-      // 저녁 노을
-      if (theme.skyTop === '#6b5a86') {
-        // eslint-disable-next-line no-unused-expressions
-        const g = ctx.createLinearGradient(0, 60, 0, 140);
-        g.addColorStop(0, 'rgba(255,150,90,.12)');
-        g.addColorStop(1, 'rgba(90,40,90,.18)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 60, W, 80);
+    function draw(t, cam, entities) {
+      ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+      if (mode === 'in') drawInterior(cam, t);
+      else drawAlley(cam, t);
+
+      const feet = mode === 'in' ? FLOOR_IN : FLOOR_OUT;
+      // 뒤쪽 인물 → 앞쪽 인물 순
+      const list = entities.slice().sort((a, b) => a.x - b.x);
+      for (const e of list) {
+        if (e.kind === 'human') drawPerson(e.sprite, e.x - cam, feet, e.facing, t, e.walking);
+        else drawCat(e.x - cam, feet, e.facing, t, e.walking, e.sniffing);
       }
     }
 
-    return { setDay, draw };
+    function setScene(m, day, seed) {
+      mode = m;
+      theme = day.theme;
+      world = m === 'in' ? buildInterior(seed) : buildAlley(seed);
+    }
+
+    return { draw, setScene, VIEW_W, VIEW_H };
   })();
 
   /* ─────────────── 화면 요소 ─────────────── */
@@ -544,45 +607,41 @@
       final: $('#screen-final')
     },
     dayLabel: $('#day-label'),
+    stageLabel: $('#stage-label'),
     roundLabel: $('#round-label'),
     score: $('#score'),
     combo: $('#combo'),
-    catWrap: $('#cat-wrap'),
-    placard: $('#placard'),
-    placardMark: $('#placard-mark'),
-    timeFill: $('#timebar-fill'),
-    bubble: $('#bubble'),
-    bubbleText: $('#bubble-text'),
-    float: $('#float-score'),
+    stage: $('#stage'),
+    worldUi: $('#world-ui'),
+    caption: $('#caption'),
+    clues: $('#clues'),
+    judge: $('#judge'),
     dayCard: $('#day-card'),
     dayCardText: $('#day-card-text'),
-    humanName: $('#human-name'),
-    humanTag: $('#human-tag'),
-    clues: $('#clues'),
-    notes: $('#clue-notes'),
-    judge: $('#judge'),
-    verdict: $('#verdict'),
-    verdictText: $('#verdict-text'),
-    verdictWhy: $('#verdict-why'),
-    next: $('#btn-next'),
+    fade: $('#fade'),
+    arrowL: $('#arrow-left'),
+    arrowR: $('#arrow-right'),
     best: $('#best-line'),
     modal: $('#modal-help')
   };
 
-  const HINT = '관찰 한 번에 <b>2초</b>가 흐른다. 다 볼지, 눈치로 갈지 골라라.';
+  const HINT = '화면 왼쪽·오른쪽을 <b>누르고 있으면</b> 걸어간다. 인간에게 가까이 가면 살필 수 있다.';
 
-  /* ─────────────── 게임 상태 ─────────────── */
-  const WAIT_TIME = 16;          // 초
-  const OBSERVE_COST = 2;        // 초
+  /* ─────────────── 상태 ─────────────── */
+  const PROX = 40;
+  const OBSERVE_COST = 2;
   const ROUNDS_PER_DAY = 4;
 
   const G = {
     day: 0,
     round: 0,
+    days: [],
     queue: [],
+    scene: 'in',
+    phase: 'idle',        // idle | play | judged | trans | daycard | dayend | final
+    cat: { x: 60, facing: 1, walking: false, sniffing: 0 },
+    cam: 0,
     human: null,
-    phase: 'idle',
-    timeLeft: 0,
     observed: { smell: false, eyes: false, act: false },
     score: 0,
     correct: 0,
@@ -590,10 +649,13 @@
     maxCombo: 0,
     dayResults: [],
     results: [],
-    humans: [],
+    pops: [],
+    bubbleEl: null,
     lastT: 0,
-    autoNextTimer: 0,
-    muted: !Sound.isOn()
+    autoNext: 0,
+    trans: null,
+    holding: 0,           // -1 왼쪽, 1 오른쪽, 0 정지
+    clock: 0
   };
 
   function setScreen(name) {
@@ -602,6 +664,7 @@
 
   function updateHud() {
     ui.dayLabel.textContent = DAYS[G.day].label;
+    ui.stageLabel.textContent = G.scene === 'in' ? '집 안' : '골목';
     ui.roundLabel.textContent = `${Math.min(G.round + 1, ROUNDS_PER_DAY)}/${ROUNDS_PER_DAY}`;
     ui.score.textContent = G.score;
     if (G.streak >= 2) {
@@ -610,37 +673,70 @@
     } else {
       ui.combo.hidden = true;
     }
-  }
-
-  function updateMuteBtn() {
     $('#btn-mute').textContent = Sound.isOn() ? '🔊' : '🔇';
   }
 
-  function showBubble(text) {
-    ui.bubbleText.textContent = text;
-    ui.bubble.classList.add('show');
-  }
-  function hideBubble() { ui.bubble.classList.remove('show'); }
-
-  function setNotes(html) { ui.notes.innerHTML = html; }
-
-  function showPlacard(kind) {
-    ui.placard.className = 'placard show ' + kind;
-    ui.placardMark.textContent = kind === 'plus' ? '+' : kind === 'minus' ? '−' : '90';
-    ui.catWrap.classList.add('raise');
-  }
-  function hidePlacard() {
-    ui.placard.className = 'placard';
-    ui.catWrap.classList.remove('raise');
+  function caption(html, cls) {
+    ui.caption.innerHTML = `<p class="line ${cls || ''}">${html}</p>`;
   }
 
-  function floatScore(text, bad) {
-    ui.float.textContent = text;
-    ui.float.className = 'float-score show' + (bad ? ' bad' : '');
-    setTimeout(() => { ui.float.className = 'float-score'; }, 1100);
+  function addCaptionLine(html) {
+    const p = document.createElement('p');
+    p.className = 'line';
+    p.innerHTML = html;
+    ui.caption.appendChild(p);
+    const lines = ui.caption.querySelectorAll('.line');
+    if (lines.length > 3) lines[0].remove();
+    ui.caption.scrollTop = 9999;
   }
 
-  /* ─────────────── 하루 시작 ─────────────── */
+  /* ── 월드 좌표 → 무대 위 % ── */
+  function toStage(wx, wy) {
+    return {
+      left: ((wx - G.cam) / VIEW_W) * 100,
+      top: (wy / VIEW_H) * 100
+    };
+  }
+
+  function popScore(wx, wy, mark, text, cls) {
+    const el = document.createElement('div');
+    el.className = `pop ${cls}`;
+    el.innerHTML = `<b>${mark}</b><span>${text}</span>`;
+    const pos = toStage(wx, wy);
+    el.style.left = pos.left + '%';
+    el.style.top = pos.top + '%';
+    ui.worldUi.appendChild(el);
+    G.pops.push({ el, wx, wy, life: 1.6 });
+    setTimeout(() => el.remove(), 1700);
+  }
+
+  function showNameTag(text) {
+    if (!G.tagEl) {
+      G.tagEl = document.createElement('div');
+      G.tagEl.className = 'nametag';
+      ui.worldUi.appendChild(G.tagEl);
+    }
+    G.tagEl.textContent = text;
+    G.tagEl.classList.add('show');
+  }
+  function hideNameTag() {
+    if (G.tagEl) G.tagEl.classList.remove('show');
+  }
+
+  function showBubble(h) {
+    if (!G.bubbleEl) {
+      G.bubbleEl = document.createElement('div');
+      G.bubbleEl.className = 'bub';
+      ui.worldUi.appendChild(G.bubbleEl);
+    }
+    G.bubbleEl.textContent = h.bubble;
+    G.bubbleEl.classList.add('show');
+  }
+  function hideBubble() {
+    if (G.bubbleEl) G.bubbleEl.classList.remove('show');
+  }
+
+  /* ─────────────── 시작 ─────────────── */
   function startRun() {
     G.day = 0;
     G.round = 0;
@@ -649,14 +745,13 @@
     G.streak = 0;
     G.maxCombo = 0;
     G.results = [];
-    G.queue = shuffle(HUMANS).map((h, i) => ({ ...h, key: i }));
 
-    // 하루 4명씩 나눠 담기
-    const days = [[], [], []];
-    G.queue.forEach((h, i) => days[i % 3].push(h));
-    // 정답 성향이 몰리지 않게 섞기
-    days.forEach(d => d.sort(() => Math.random() - 0.5));
-    G.dayQueues = days.map(d => shuffle(d).slice(0, ROUNDS_PER_DAY));
+    const indoor = shuffle(HUMANS.filter(h => h.scene === 'in'));
+    const outdoor = shuffle(HUMANS.filter(h => h.scene === 'out'));
+    G.days = [0, 1, 2].map(i => ({
+      in: [indoor[i * 2], indoor[i * 2 + 1]],
+      out: [outdoor[i * 2], outdoor[i * 2 + 1]]
+    }));
 
     setScreen('game');
     startDay(0);
@@ -666,205 +761,245 @@
     G.day = dayIndex;
     G.round = 0;
     G.dayResults = [];
+    G.scene = 'in';
+    G.queue = G.days[dayIndex].in.slice();
+    G.cat = { x: 46, facing: 1, walking: false, sniffing: 0 };
+    G.cam = 0;
     G.human = null;
-    G.queue = G.dayQueues[dayIndex].slice();
-    G.streak = 0;
-    G.correctDay = 0;
+    G.holding = 0;
     updateHud();
-    setNotes(`<p class="hint">${HINT}</p>`);
-    ui.humanName.textContent = '—';
-    ui.humanTag.textContent = '';
-    ui.judge.querySelectorAll('.sign').forEach(b => { b.disabled = true; });
-    hideBubble();
-    hidePlacard();
-    ui.verdict.hidden = true;
-    ui.judge.hidden = false;
+    caption(`<b>${DAYS[dayIndex].label}</b> — ${DAYS[dayIndex].intro}`);
+    setNotesEnabled(false);
+    Scene.setScene('in', DAYS[dayIndex], 1000 + dayIndex * 77);
 
-    Scene.setDay(DAYS[dayIndex], 1000 + dayIndex * 77);
-
-    ui.dayCardText.innerHTML = `<div>${DAYS[dayIndex].label}</div><div style="margin-top:6px">${DAYS[dayIndex].intro}</div>`;
+    ui.dayCardText.innerHTML = `<div>${DAYS[dayIndex].label} · 집 안</div><div class="sub">${DAYS[dayIndex].intro}</div><div class="tip">화면을 눌러 걸어가라</div>`;
     ui.dayCard.classList.add('show');
     G.phase = 'daycard';
     const dismiss = () => {
       if (G.phase !== 'daycard') return;
-      G.phase = 'idle';
+      G.phase = 'play';
       ui.dayCard.classList.remove('show');
       ui.dayCard.removeEventListener('click', dismiss);
       Sound.meow();
       spawnHuman();
     };
     ui.dayCard.addEventListener('click', dismiss);
-    setTimeout(dismiss, 2600);
+    setTimeout(dismiss, 2400);
+  }
+
+  function setNotesEnabled(on) {
+    if (G.notesOn === !!on) return;
+    ui.clues.querySelectorAll('.chip').forEach(c => { c.disabled = !on; });
+    ui.judge.querySelectorAll('.sign').forEach(b => { b.disabled = !on; });
+    G.notesOn = !!on;
   }
 
   function spawnHuman() {
-    const data = G.queue[G.round];
+    // 집 안은 0·1, 골목은 2·3 라운드 — 큐는 장면별 두 명씩
+    const data = G.queue[G.round % 2];
     if (!data) return;
+    const spot = SPOTS[G.scene][G.round % 4];
     G.human = {
-      ...data,
-      x: -26,
-      dir: 1,
-      phase: 0,
-      moving: true,
+      data,
+      sprite: data.sprite,
+      x: spot + (G.scene === 'in' ? 60 : 70),   // 오른쪽에서 걸어 들어온다
+      target: spot,
+      facing: -1,
+      walking: true,
+      state: 'enter',
+      stay: G.scene === 'in' ? 42 : 28,
+      stayLeft: 0,
       mood: null,
-      blush: data.id === 'tsundere'
+      bubble: data.bubble
     };
     G.observed = { smell: false, eyes: false, act: false };
-    G.timeLeft = WAIT_TIME;
-    G.phase = 'enter';
-    G.autoNextTimer = 0;
-    ui.timeFill.style.width = '100%';
-    ui.timeFill.classList.remove('low');
-
-    ui.humanName.textContent = data.name;
-    ui.humanTag.textContent = data.tag;
-    ui.clues.querySelectorAll('.chip').forEach(chip => {
-      chip.classList.remove('on', 'hit');
-      chip.disabled = true;
-    });
-    setNotes(`<p class="hint">${HINT}</p>`);
-    ui.verdict.hidden = true;
-    ui.judge.hidden = false;
-    ui.judge.querySelectorAll('.sign').forEach(b => { b.disabled = true; });
-    hidePlacard();
+    G.phase = 'play';
+    G.autoNext = 0;
+    setNotesEnabled(false);
     hideBubble();
+    showNameTag(data.name);
+    caption(`<b>${data.name}</b> — ${data.tag}. 가까이 가서 살펴보자.`);
     updateHud();
   }
 
-  /* ─────────────── 관찰 ─────────────── */
+  /* ─────────────── 상호작용 ─────────────── */
+  function inRange() {
+    return G.human && G.human.state === 'idle' && Math.abs(G.cat.x - G.human.x) < PROX;
+  }
+
+  function faceHuman() {
+    if (!G.human) return;
+    G.cat.facing = G.human.x >= G.cat.x ? 1 : -1;
+  }
+
   function observe(key) {
-    if (G.phase !== 'decide' || G.observed[key]) return;
-    const data = G.human;
-    if (!data) return;
+    if (!inRange() || G.observed[key]) return;
     G.observed[key] = true;
-    G.timeLeft = Math.max(0.4, G.timeLeft - OBSERVE_COST);
+    G.human.stayLeft = Math.max(0.5, G.human.stayLeft - OBSERVE_COST);
+    G.cat.sniffing = 0.5;
+    G.cat.facing = G.human.x >= G.cat.x ? 1 : -1;
     Sound.sniff();
+
+    const label = key === 'smell' ? '냄새' : key === 'eyes' ? '눈빛' : '행동';
+    addCaptionLine(`<span class="k">${label}</span>${G.human.data.clues[key]}`);
 
     const chip = ui.clues.querySelector(`.chip[data-clue="${key}"]`);
     if (chip) {
       chip.classList.add('on', 'hit');
-      chip.disabled = true;
       setTimeout(() => chip.classList.remove('hit'), 320);
     }
-
-    const label = key === 'smell' ? '냄새' : key === 'eyes' ? '눈빛' : '행동';
-    const notes = ui.notes.querySelectorAll('p');
-    const hintP = ui.notes.querySelector('.hint');
-    if (hintP) hintP.remove();
-    const p = document.createElement('p');
-    p.innerHTML = `<span class="k">${label}</span>${data.clues[key]}`;
-    ui.notes.appendChild(p);
-    ui.notes.scrollTop = ui.notes.scrollHeight;
-    if (notes.length > 3) notes[0].remove();
-
-    // 관찰할 때마다 고양이가 냄새 맡는 모션
-    ui.catWrap.style.transform = 'translateY(1px)';
-    setTimeout(() => { ui.catWrap.style.transform = ''; }, 160);
   }
 
-  /* ─────────────── 판정 ─────────────── */
   function judge(choice) {
-    if (G.phase !== 'decide') return;
-    const data = G.human;
-    if (!data) return;
-
+    if (!inRange() || G.human.state !== 'idle') return;
+    const data = G.human.data;
+    G.human.state = 'react';
+    G.human.walking = false;
+    G.human.mood = choice === 'plus' ? 'heart' : choice === 'minus' ? 'drop' : 'q';
     G.phase = 'judged';
-    ui.judge.hidden = true;
-    ui.clues.querySelectorAll('.chip').forEach(chip => { chip.disabled = true; });
+    setNotesEnabled(false);
     hideBubble();
-
-    const isRight = choice === data.truth;
-    showPlacard(choice);
+    hideNameTag();
     Sound.slap();
 
-    // 인간 반응
-    G.human.moving = false;
-    G.human.mood = choice === 'plus'
-      ? { map: 'heart', color: '#d9646b' }
-      : choice === 'minus'
-        ? { map: 'drop', color: '#5f8ac0' }
-        : { map: 'q', color: '#c9a13c' };
-
+    const isRight = choice === data.truth;
+    const mark = choice === 'plus' ? '+' : choice === 'minus' ? '−' : '90';
     let gained = 0;
     if (isRight) {
       G.correct += 1;
-      G.correctDay += 1;
       G.streak += 1;
       G.maxCombo = Math.max(G.maxCombo, G.streak);
       gained = 100 + Math.min(100, (G.streak - 1) * 20);
       G.score += gained;
-      floatScore(`+${gained}`);
-      setTimeout(() => Sound.ok(), 140);
+      setTimeout(() => Sound.ok(), 150);
     } else {
       G.streak = 0;
       G.score += 40;
-      floatScore('+40', true);
-      setTimeout(() => Sound.ng(), 140);
+      gained = 40;
+      setTimeout(() => Sound.ng(), 150);
     }
+
+    // 머리 위 점수
+    const headY = (G.scene === 'in' ? FLOOR_IN : FLOOR_OUT) - SPRITE_H - 4;
+    popScore(G.human.x, headY, mark, isRight ? `+${gained}` : `+${gained} 빗나감`, isRight ? 'ok' : 'ng');
 
     G.results.push({ id: data.id, choice, right: isRight });
     G.dayResults.push({ id: data.id, right: isRight, missed: false });
 
-    ui.verdictText.className = 'verdict-text ' + (isRight ? 'ok' : 'ng');
-    ui.verdictText.textContent = data.lines[choice];
-    ui.verdictWhy.textContent = isRight ? '' : `구공이의 속내 — ${data.why}`;
-    ui.verdict.hidden = false;
-    ui.next.textContent = (G.round + 1 >= ROUNDS_PER_DAY && G.day + 1 >= DAYS.length)
-      ? '심사 마감 →'
-      : (G.round + 1 >= ROUNDS_PER_DAY ? `${G.day + 2}일차로 →` : '다음 인간 →');
-
+    caption(
+      `<b>${mark === '90' ? '90점' : mark === '+' ? '합격' : '감점'}</b> ${data.lines[choice]}` +
+      (isRight ? '' : `<br><span class="why">구공이의 속내 — ${data.why}</span>`),
+      isRight ? 'ok' : 'ng'
+    );
     updateHud();
-
-    // 5초 뒤 자동 진행
-    G.autoNextTimer = 5.2;
+    G.autoNext = 3.4;
   }
 
   function missHuman() {
-    if (G.phase !== 'decide') return;
-    const data = G.human;
-    G.phase = 'judged';
+    const data = G.human.data;
+    G.human.state = 'react';
+    G.human.walking = false;
     G.streak = 0;
-    ui.judge.hidden = true;
-    ui.clues.querySelectorAll('.chip').forEach(chip => { chip.disabled = true; });
-    hideBubble();
-    Sound.miss();
     G.dayResults.push({ id: data.id, right: false, missed: true });
     G.results.push({ id: data.id, choice: null, right: false, missed: true });
-
-    ui.verdictText.className = 'verdict-text ng';
-    ui.verdictText.textContent = '놓쳤다. 인간이 골목을 지나갔다. 고양이는 안 본 척할 수는 있어도, 못 본 건 못 본 것이다.';
-    ui.verdictWhy.textContent = `구공이의 속내 — ${data.why}`;
-    ui.verdict.hidden = false;
-    ui.next.textContent = (G.round + 1 >= ROUNDS_PER_DAY && G.day + 1 >= DAYS.length)
-      ? '심사 마감 →'
-      : (G.round + 1 >= ROUNDS_PER_DAY ? `${G.day + 2}일차로 →` : '다음 인간 →');
-    G.autoNextTimer = 4.4;
-    updateHud();
+    caption(`놓쳤다. <b>${data.name}</b>이(가) 가 버렸다.<br><span class="why">구공이의 속내 — ${data.why}</span>`, 'ng');
+    setNotesEnabled(false);
+    hideBubble();
+    hideNameTag();
+    Sound.miss();
+    G.phase = 'judged';
+    G.autoNext = 2.2;
   }
 
-  function nextStep() {
-    if (G.phase !== 'judged') return;
-    G.autoNextTimer = 0;
-    const last = G.round + 1 >= ROUNDS_PER_DAY;
+  function nextHuman() {
+    if (!G.human || (G.human.state !== 'react')) { G.autoNext = 0; return; }
+    G.autoNext = 0;
+    if (G.human) {
+      G.human.state = 'leave';
+      G.human.walking = true;
+      G.human.facing = 1;
+    }
+    G.phase = 'leaving';
 
-    if (last) {
-      if (G.day + 1 >= DAYS.length) {
-        endRun();
-      } else {
-        endDay();
-      }
+    const lastInDay = G.round + 1 >= ROUNDS_PER_DAY;
+    const lastInScene = G.round + 1 >= 2;
+    G.pending = { lastInDay, lastInScene };
+  }
+
+  function afterLeave() {
+    const { lastInDay, lastInScene } = G.pending || {};
+    G.round += 1;
+    if (lastInDay) {
+      if (G.day + 1 >= DAYS.length) endRun();
+      else endDay();
       return;
     }
-
-    // 이번 인간은 걸어서 퇴장, 다 나가면 다음 인간 등장
-    ui.verdict.hidden = true;
-    hidePlacard();
-    G.phase = 'leave';
+    if (lastInScene && G.scene === 'in') {
+      startTransition();
+      return;
+    }
+    G.human = null;
+    spawnHuman();
   }
 
+  /* ── 집 안 → 골목 전환 ── */
+  function startTransition() {
+    G.phase = 'trans';
+    G.trans = { t: 0, stage: 'walk' };
+    G.human = null;
+    hideBubble();
+    hideNameTag();
+    ui.fade.className = 'fade';
+    caption('구공이가 문가로 걸어간다. 골목으로 나가자.');
+  }
+
+  function updateTransition(dt) {
+    const tr = G.trans;
+    tr.t += dt;
+    if (tr.stage === 'walk') {
+      const doorX = 444;
+      G.cat.walking = true;
+      G.cat.facing = 1;
+      G.cat.x = Math.min(doorX, G.cat.x + 58 * dt);
+      if (G.cat.x >= doorX - 1 || tr.t > 6) {
+        tr.stage = 'out';
+        tr.t = 0;
+        Sound.door();
+        ui.fade.classList.add('on');
+      }
+    } else if (tr.stage === 'out') {
+      if (tr.t > 0.7) {
+        tr.stage = 'swap';
+        tr.t = 0;
+        G.scene = 'out';
+        G.queue = G.days[G.day].out.slice();
+        G.round = 2;
+        Scene.setScene('out', DAYS[G.day], 3000 + G.day * 91);
+        G.cat = { x: 24, facing: 1, walking: false, sniffing: 0 };
+        G.cam = 0;
+      }
+    } else if (tr.stage === 'swap') {
+      if (tr.t > 0.35) {
+        tr.stage = 'in';
+        tr.t = 0;
+        ui.fade.classList.remove('on');
+        caption('골목이다. 지나가는 인간을 살펴보자.');
+      }
+    } else if (tr.stage === 'in') {
+      if (tr.t > 0.6) {
+        G.phase = 'play';
+        G.trans = null;
+        updateHud();
+        spawnHuman();
+      }
+    }
+  }
+
+  /* ─────────────── 정산 ─────────────── */
   function endDay() {
     G.phase = 'dayend';
-    hidePlacard();
+    hideBubble();
+    hideNameTag();
     const results = G.dayResults;
     const right = results.filter(r => r.right).length;
     const missed = results.filter(r => r.missed).length;
@@ -885,10 +1020,10 @@
 
   function endRun() {
     G.phase = 'final';
-    hidePlacard();
+    hideBubble();
+    hideNameTag();
     const correct = G.correct;
     const rank = RANKS.find(r => correct >= r.min) || RANKS[RANKS.length - 1];
-
     $('#rank-title').textContent = rank.title;
     $('#rank-desc').textContent = rank.desc;
     $('#final-correct').textContent = `${correct}/12`;
@@ -902,75 +1037,136 @@
     } else {
       $('#final-best').textContent = `최고 기록 · ${best.score} 냥력 (${best.title})`;
     }
-
     setScreen('final');
     Sound.win();
   }
 
   /* ─────────────── 루프 ─────────────── */
-  let rafId = null;
-
   function loop(now) {
-    rafId = requestAnimationFrame(loop);
+    requestAnimationFrame(loop);
     if (!G.lastT) G.lastT = now;
     let dt = (now - G.lastT) / 1000;
     G.lastT = now;
-    if (dt > 0.25) dt = 0.25;
+    if (dt > 0.2) dt = 0.2;
+    G.clock = now;
 
+    const worldMax = WORLD[G.scene];
     const h = G.human;
+
+    /* 고양이 이동 */
+    if (G.phase === 'play' && !G.trans) {
+      let dir = G.holding;
+      // 인간 앞에서는 걸음을 멈추고 마주 본다 (지나치지 않게)
+      if (dir !== 0 && G.human && G.human.state === 'idle') {
+        const gap = G.human.x - G.cat.x;
+        if (Math.sign(gap) === dir && Math.abs(gap) <= 26) dir = 0;
+      }
+      G.cat.walking = dir !== 0;
+      if (dir !== 0) {
+        G.cat.x = clamp(G.cat.x + dir * 54 * dt, 8, worldMax - 10);
+        G.cat.facing = dir;
+        Sound.step(now);
+      }
+    }
+    if (G.cat.sniffing > 0) G.cat.sniffing = Math.max(0, G.cat.sniffing - dt);
+
+    /* 인간 상태 */
     if (h) {
-      if (G.phase === 'enter') {
-        h.moving = true;
-        h.x += 48 * dt;
-        h.phase += dt * 5.5;
-        if (h.x >= 92) {
-          h.x = 92;
-          h.moving = false;
-          G.phase = 'decide';
-          G.timeLeft = WAIT_TIME;
-          ui.clues.querySelectorAll('.chip').forEach(c => { c.disabled = false; });
-          ui.judge.querySelectorAll('.sign').forEach(b => { b.disabled = false; });
-          showBubble(h.bubble);
+      if (h.state === 'enter') {
+        h.walking = true;
+        const dx = h.target - h.x;
+        if (Math.abs(dx) < 1.5) {
+          h.x = h.target;
+          h.walking = false;
+          h.state = 'idle';
+          h.stayLeft = h.stay;
+          showBubble(h);
           Sound.tap();
+          setNotesEnabled(false);
+        } else {
+          h.x += Math.sign(dx) * 34 * dt;
+          h.facing = Math.sign(dx);
         }
-      } else if (G.phase === 'decide') {
-        h.phase += dt * 2;
-        G.timeLeft -= dt;
-        if (G.timeLeft <= 0) {
-          G.timeLeft = 0;
-          missHuman();
-        }
-      } else if (G.phase === 'judged') {
-        h.phase += dt * 2;
-        if (G.autoNextTimer > 0) {
-          G.autoNextTimer -= dt;
-          if (G.autoNextTimer <= 0) { G.autoNextTimer = 0; nextStep(); }
-        }
-      } else if (G.phase === 'leave') {
-        h.moving = true;
-        h.x += 62 * dt;
-        h.phase += dt * 5.5;
-        if (h.x > 258) {
-          G.round += 1;
-          G.phase = 'idle';
-          spawnHuman();
+      } else if (h.state === 'idle') {
+        h.stayLeft -= dt;
+        h.facing = G.cat.x >= h.x ? 1 : -1;
+        const near = Math.abs(G.cat.x - h.x) < PROX;
+        setNotesEnabled(near);
+        if (near && Math.abs(G.cat.x - h.x) < PROX - 4) faceHuman();
+        if (h.stayLeft <= 0) missHuman();
+      } else if (h.state === 'react') {
+        /* 대기 */
+      } else if (h.state === 'leave') {
+        h.walking = true;
+        h.x += 78 * dt;
+        const offScreen = h.x > G.cam + VIEW_W + 12 || h.x < G.cam - 40;
+        if (G.phase === 'leaving' && offScreen) {
+          afterLeave();
+        } else if (h.x > worldMax + 60) {
+          h.x = worldMax + 60;
         }
       }
     }
 
-    // 공통 애니메이션
-    G.humans = h && (G.phase !== 'dayend' && G.phase !== 'final') ? [h] : [];
-
-    if (G.phase === 'decide' || G.phase === 'enter') {
-      const ratio = clamp(G.timeLeft / WAIT_TIME, 0, 1);
-      ui.timeFill.style.width = (ratio * 100).toFixed(1) + '%';
-      ui.timeFill.classList.toggle('low', ratio < 0.28);
+    if (G.autoNext > 0) {
+      G.autoNext -= dt;
+      if (G.autoNext <= 0) nextHuman();
     }
 
-    Scene.draw(now, G.humans);
+    if (G.trans) updateTransition(dt);
+
+    /* 카메라 */
+    const camTarget = clamp(G.cat.x - VIEW_W / 2 + 10, 0, worldMax - VIEW_W);
+    G.cam += (camTarget - G.cam) * Math.min(1, dt * 6);
+
+    /* 무대 위 DOM (점수/말풍선) 위치 갱신 */
+    for (const p of G.pops) {
+      const pos = toStage(p.wx, p.wy);
+      p.el.style.left = pos.left + '%';
+      p.el.style.top = pos.top + '%';
+    }
+    if (h) {
+      const feet = G.scene === 'in' ? FLOOR_IN : FLOOR_OUT;
+      if (G.tagEl) {
+        const p = toStage(h.x + 8, feet - SPRITE_H - 1);
+        G.tagEl.style.left = p.left + '%';
+        G.tagEl.style.top = p.top + '%';
+      }
+      if (G.bubbleEl) {
+        const p = toStage(h.x + 8, feet - SPRITE_H - 16);
+        G.bubbleEl.style.left = p.left + '%';
+        G.bubbleEl.style.top = p.top + '%';
+      }
+    }
+
+    /* 이동 화살표 */
+    if (G.phase === 'play') {
+      const near = h && h.state === 'idle' && Math.abs(G.cat.x - h.x) < PROX;
+      ui.arrowL.classList.toggle('show', G.holding !== -1 && !near);
+      ui.arrowR.classList.toggle('show', G.holding !== 1 && !near);
+    } else {
+      ui.arrowL.classList.remove('show');
+      ui.arrowR.classList.remove('show');
+    }
+
+    const entities = [];
+    if (h) {
+      entities.push({ kind: 'human', x: h.x, sprite: h.sprite, facing: h.facing, walking: h.walking, mood: h.mood });
+    }
+    entities.push({ kind: 'cat', x: G.cat.x, facing: G.cat.facing, walking: G.cat.walking, sniffing: G.cat.sniffing > 0 });
+
+    Scene.draw(now, G.cam, entities);
   }
 
-  /* ─────────────── 이벤트 ─────────────── */
+  /* ─────────────── 조작 ─────────────── */
+  function pointerDir(clientX) {
+    const rect = ui.stage.getBoundingClientRect();
+    const logical = ((clientX - rect.left) / rect.width) * VIEW_W;
+    const catScreen = G.cat.x - G.cam;
+    if (Math.abs(logical - catScreen) < 12) return 0;
+    return logical > catScreen ? 1 : -1;
+  }
+
   function bind() {
     $('#btn-start').addEventListener('click', () => { Sound.meow(); startRun(); });
     $('#btn-howto').addEventListener('click', () => { ui.modal.hidden = false; });
@@ -980,23 +1176,57 @@
 
     $('#btn-mute').addEventListener('click', () => {
       Sound.set(!Sound.isOn());
-      updateMuteBtn();
+      updateHud();
       if (Sound.isOn()) Sound.tap();
     });
 
     ui.clues.addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
-      if (!chip) return;
-      observe(chip.dataset.clue);
+      if (chip) observe(chip.dataset.clue);
     });
-
     ui.judge.addEventListener('click', (e) => {
       const btn = e.target.closest('.sign');
-      if (!btn) return;
-      judge(btn.dataset.judge);
+      if (btn) judge(btn.dataset.judge);
     });
 
-    ui.next.addEventListener('click', () => { Sound.tap(); nextStep(); });
+    // 무대 누르고 걷기
+    let pressing = false;
+    const start = (e) => {
+      if (G.phase !== 'play') return;
+      pressing = true;
+      G.holding = pointerDir(e.clientX);
+      e.preventDefault();
+    };
+    const move = (e) => {
+      if (!pressing) return;
+      G.holding = pointerDir(e.clientX);
+    };
+    const end = () => { pressing = false; G.holding = 0; };
+
+    ui.stage.addEventListener('pointerdown', start);
+    ui.stage.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+
+    // 키보드
+    document.addEventListener('keydown', (e) => {
+      if (G.phase === 'play') {
+        if (e.key === 'ArrowLeft') { G.holding = -1; e.preventDefault(); }
+        if (e.key === 'ArrowRight') { G.holding = 1; e.preventDefault(); }
+        if (e.key === '1') observe('smell');
+        if (e.key === '2') observe('eyes');
+        if (e.key === '3') observe('act');
+        if (e.key === 'a') judge('plus');
+        if (e.key === 's') judge('minus');
+        if (e.key === 'd') judge('ninety');
+      } else if (G.phase === 'judged' && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        nextHuman();
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if ((e.key === 'ArrowLeft' && G.holding === -1) || (e.key === 'ArrowRight' && G.holding === 1)) G.holding = 0;
+    });
 
     $('#btn-nextday').addEventListener('click', () => {
       Sound.tap();
@@ -1011,43 +1241,26 @@
       try {
         await navigator.clipboard.writeText(text);
         $('#btn-share').textContent = '복사됨!';
-      } catch (e) {
+      } catch (err) {
         $('#btn-share').textContent = '복사 실패';
       }
       setTimeout(() => { $('#btn-share').textContent = '결과 복사'; }, 1600);
     });
 
-    document.addEventListener('keydown', (e) => {
-      if (G.phase === 'decide') {
-        if (e.key === '1' || e.key === 'q') observe('smell');
-        if (e.key === '2' || e.key === 'w') observe('eyes');
-        if (e.key === '3' || e.key === 'e') observe('act');
-        if (e.key === '+' || e.key === 'a') judge('plus');
-        if (e.key === '-' || e.key === 's') judge('minus');
-        if (e.key === '9' || e.key === 'd') judge('ninety');
-      } else if (G.phase === 'judged' && (e.key === 'Enter' || e.key === ' ')) {
-        nextStep();
-      }
-    });
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) G.autoNextTimer = Math.max(G.autoNextTimer, 0.1);
-      G.lastT = 0;
-    });
-
-    // 화면 회전·크기 변경 시 캔버스 픽셀 유지 (CSS가 처리, 상태만 초기화)
-    window.addEventListener('orientationchange', () => { G.lastT = 0; });
+    document.addEventListener('visibilitychange', () => { G.lastT = 0; G.holding = 0; });
   }
 
   /* ─────────────── 초기화 ─────────────── */
   function init() {
+    IMG.cat = loadImage('assets/gugoong.png');
+    for (const h of HUMANS) IMG.people[h.sprite] = loadImage(h.sprite);
+
     const best = store.get('gugoong.best', null);
     if (best) ui.best.textContent = `최고 기록 · ${best.score} 냥력 (${best.title})`;
-    updateMuteBtn();
-    Scene.setDay(DAYS[0], 1000);
+    Scene.setScene('in', DAYS[0], 1000);
     bind();
     updateHud();
-    rafId = requestAnimationFrame(loop);
+    requestAnimationFrame(loop);
   }
 
   init();
