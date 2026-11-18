@@ -316,17 +316,7 @@ html, body {
   line-height: 1.55;
   color: var(--ink);
 }
-.caption::before {
-  content: '관찰 노트';
-  position: absolute;
-  top: -9px;
-  left: 8px;
-  padding: 0 5px;
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: #a8906e;
-  background: var(--cream);
-}
+
 .caption .line { margin: 0 0 4px; animation: fade .18s ease-out; }
 .caption .line:last-child { margin-bottom: 0; }
 .caption .line.hint { color: #a08a6d; }

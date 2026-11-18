@@ -808,7 +808,7 @@
       facing: -1,
       walking: true,
       state: 'enter',
-      stay: G.scene === 'in' ? 42 : 28,
+      stay: G.scene === 'in' ? 55 : 40,
       stayLeft: 0,
       mood: null,
       bubble: data.bubble
