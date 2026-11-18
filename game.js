@@ -1190,7 +1190,7 @@
       p.life -= dt;
       if (p.life <= 0 || !p.el.isConnected) { G.pops.splice(i, 1); continue; }
       const pos = toStage(p.wx, p.wy);
-      p.el.style.left = pos.left + '%';
+      p.el.style.left = clamp(pos.left, 9, 91) + '%';
       p.el.style.top = pos.top + '%';
     }
     if (h) {
@@ -1198,12 +1198,13 @@
       const hh = humanH(h.data && h.data.hScale);
       if (G.tagEl) {
         const p = toStage(h.x + 8, feet - hh - 1);
-        G.tagEl.style.left = p.left + '%';
+        G.tagEl.style.left = clamp(p.left, 12, 88) + '%';
         G.tagEl.style.top = p.top + '%';
       }
       if (G.bubbleEl) {
         const p = toStage(h.x + 8, feet - hh - 18);
-        G.bubbleEl.style.left = p.left + '%';
+        // 화면 가장자리에서 말풍선이 잘리지 않게 좌우를 붙잡아 둔다
+        G.bubbleEl.style.left = clamp(p.left, 16, 84) + '%';
         G.bubbleEl.style.top = p.top + '%';
       }
     }
