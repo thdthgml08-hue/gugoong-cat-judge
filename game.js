@@ -1201,29 +1201,29 @@
     let pressAt = 0;
     let pressX = 0;
     let moved = 0;
+    const worldAt = (clientX) => {
+      const rect = ui.stage.getBoundingClientRect();
+      const logical = ((clientX - rect.left) / rect.width) * VIEW_W;
+      return clamp(G.cam + logical, 8, WORLD[G.scene] - 10);
+    };
     const start = (e) => {
       if (G.phase !== 'play') return;
       pressing = true;
       pressAt = Date.now();
       pressX = e.clientX;
       moved = 0;
-      G.walkTo = null;
+      // 누른 지점까지 걸어가는 목적지 + 누르고 있는 동안은 그 방향으로
+      G.walkTo = worldAt(e.clientX);
       G.holding = pointerDir(e.clientX);
       e.preventDefault();
     };
     const move = (e) => {
       if (!pressing) return;
-      if (Math.abs(e.clientX - pressX) > 6) moved++;
+      if (Math.abs(e.clientX - pressX) > 6) { moved++; G.walkTo = null; }
       pressX = e.clientX;
       G.holding = pointerDir(e.clientX);
     };
     const end = () => {
-      if (pressing && Date.now() - pressAt < 260 && moved < 3) {
-        // 짧은 탭 → 누른 지점까지 자동으로 걸어간다
-        const rect = ui.stage.getBoundingClientRect();
-        const logical = ((pressX - rect.left) / rect.width) * VIEW_W;
-        G.walkTo = clamp(G.cam + logical, 8, WORLD[G.scene] - 10);
-      }
       pressing = false;
       G.holding = 0;
     };
