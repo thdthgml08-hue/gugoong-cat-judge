@@ -1133,7 +1133,7 @@
         G.tagEl.style.top = p.top + '%';
       }
       if (G.bubbleEl) {
-        const p = toStage(h.x + 8, feet - SPRITE_H - 16);
+        const p = toStage(h.x + 8, feet - SPRITE_H - 18);
         G.bubbleEl.style.left = p.left + '%';
         G.bubbleEl.style.top = p.top + '%';
       }
