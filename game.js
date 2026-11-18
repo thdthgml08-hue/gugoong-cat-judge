@@ -852,7 +852,7 @@
        다음 인간이 어디서 오는지 늘 보이게 한다. */
     const spot = SPOTS[G.scene][G.round % 4];
     const target = clamp(
-      Math.abs(spot - G.cat.x) <= VIS_W * 0.72 ? spot : G.cat.x + 76,
+      Math.abs(spot - G.cat.x) <= VIS_W * 0.42 ? spot : G.cat.x + 68,
       30, worldMax - 30
     );
     let from = target + 55;
