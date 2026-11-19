@@ -91,7 +91,7 @@ export class Gugoong {
     /* ── 꼬리 (엉덩이 위로 말려 올라간다) ── */
     const tailRoot = new THREE.Group();
     tailRoot.position.set(0, 0.6, -0.5);
-    tailRoot.rotation.set(1.02, 0, -0.62);
+    tailRoot.rotation.set(1.12, 0, -0.8);
     root.add(tailRoot);
     const tailBase = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), fur);
     tailRoot.add(tailBase);

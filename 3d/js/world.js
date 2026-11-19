@@ -49,6 +49,11 @@ export function buildWorld() {
   root.add(alleyGround);
   groundPick.push(alleyGround);
 
+  // 길 가장자리 돌턱
+  for (const side of [-1, 1]) {
+    root.add(box(0.14, 0.09, 20.6, std(0xa7977f, { roughness: 0.95 }), side * 2.02, 0.035, 10.6, { cast: false }));
+  }
+
   const path = new THREE.Mesh(
     new THREE.PlaneGeometry(3.9, 20.6),
     new THREE.MeshStandardMaterial({ map: cobbleTexture(), roughness: 0.95 })

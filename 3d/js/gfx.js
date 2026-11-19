@@ -142,7 +142,7 @@ export function woodTexture() {
 
 export function cobbleTexture() {
   return canvasTexture(512, 512, (c, w, h) => {
-    c.fillStyle = '#c6b79d';
+    c.fillStyle = '#bdac91';
     c.fillRect(0, 0, w, h);
     // 큰 얼룩 (다져진 흙)
     for (let i = 0; i < 46; i++) {
