@@ -355,6 +355,8 @@ class Game {
     this.ndc.x = ((cx - rect.left) / rect.width) * 2 - 1;
     this.ndc.y = -((cy - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.ndc, this.camera);
+    this.raycaster.near = 0;
+    this.raycaster.far = 80;
     const hits = this.raycaster.intersectObjects(this.world.groundPick, false);
     if (!hits.length) return;
     const p = hits[0].point;
