@@ -275,7 +275,7 @@ export const NPC_DEFS = [
     name: '사진사',
     tag: '렌즈만 든 사람',
     area: 'alley',
-    pos: [2.75, 6.45],
+    pos: [3.35, 6.9],
     rotY: Math.PI - 0.5,
     look: { skin: 0xf4cfa9, hair: 0x4a3328, shirt: 0x8a8060, pants: 0x4a4038, hairStyle: 'long' },
     prop: 'camera',
