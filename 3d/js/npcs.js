@@ -230,7 +230,7 @@ export const NPC_DEFS = [
     rotY: 0,
     seatY: 0.66,
     pose: 'sit',
-    look: { skin: 0xeec6a0, hair: 0x3b2b22, shirt: 0x6f9174, pants: 0x6b4a38, hairStyle: 'short' },
+    look: { skin: 0xeec6a0, hair: 0x3b2b22, shirt: 0x6f8fb5, pants: 0x4a4256, hairStyle: 'short' },
     line: '90점. 손은 비었는데 눈은 내 츄르를 찾고 있었다. 남은 10점은 그 손이 뭘 들고 오는지로 채점한다.',
     note: '초인종을 누르고, 아무것도 들지 않고, 소파에 앉았다.',
   },
