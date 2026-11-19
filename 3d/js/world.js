@@ -88,7 +88,7 @@ export function buildWorld() {
   // 앞벽 (문 구멍: x -1.4 ~ 1.4)
   wall(6.6, WALL_H, 0.3, mWall, -4.7, WALL_H / 2, 0);
   wall(6.6, WALL_H, 0.3, mWall, 4.7, WALL_H / 2, 0);
-  wall(2.8, 2.4, 0.3, mWall, 0, 3.8, 0);
+  wall(2.8, 2.05, 0.3, mWall, 0, 3.975, 0);
 
   // 걸레받이 / 몰딩
   root.add(box(16, 0.14, 0.06, mTrim, 0, 0.07, -13.96, { cast: false }));
@@ -400,19 +400,19 @@ export function buildWorld() {
   /* ─────────────── 문 · 현관 ─────────────── */
   // 문틀
   const doorW = 2.7;
-  root.add(box(0.16, 2.7, 0.36, mWoodDark, -1.42, 1.35, 0));
-  root.add(box(0.16, 2.7, 0.36, mWoodDark, 1.42, 1.35, 0));
-  root.add(box(3.0, 0.16, 0.36, mWoodDark, 0, 2.66, 0));
+  root.add(box(0.16, 3.0, 0.36, mWoodDark, -1.42, 1.5, 0));
+  root.add(box(0.16, 3.0, 0.36, mWoodDark, 1.42, 1.5, 0));
+  root.add(box(3.0, 0.16, 0.36, mWoodDark, 0, 2.94, 0));
   // 문짝 (바깥으로 활짝)
   const doorPivot = new THREE.Group();
   doorPivot.position.set(1.32, 0, 0.17);
   doorPivot.rotation.y = Math.PI - 0.16;
-  const doorPanel = box(2.58, 2.55, 0.08, std(0xb98a5c, { roughness: 0.85 }), -1.29, 1.28, 0);
+  const doorPanel = box(2.58, 2.86, 0.08, std(0xb98a5c, { roughness: 0.85 }), -1.29, 1.43, 0);
   doorPivot.add(doorPanel);
-  for (const [dx, dy, dw, dh] of [[-1.29, 1.75, 2.0, 0.95], [-1.29, 0.62, 2.0, 0.85]]) {
+  for (const [dx, dy, dw, dh] of [[-1.29, 1.98, 2.0, 1.05], [-1.29, 0.75, 2.0, 0.9]]) {
     doorPivot.add(box(dw, dh, 0.03, std(0xc99a6a), dx, dy, 0.06));
   }
-  const knob = sphere(0.06, std(COL.gold, { metalness: 0.35, roughness: 0.5 }), -2.3, 1.25, 0.1, 12);
+  const knob = sphere(0.06, std(COL.gold, { metalness: 0.35, roughness: 0.5 }), -2.3, 1.4, 0.1, 12);
   doorPivot.add(knob);
   root.add(doorPivot);
   addCollider(2.6, 0.28, 2.5, 0.4);
@@ -426,7 +426,7 @@ export function buildWorld() {
 
   // 문패 · 현관등
   const plate = new THREE.Group();
-  plate.position.set(1.95, 1.85, -0.18);
+  plate.position.set(1.95, 2.0, -0.18);
   plate.add(box(0.42, 0.24, 0.04, std(COL.gold, { metalness: 0.3, roughness: 0.6 }), 0, 0, 0));
   const plateTex = canvasTexture(256, 160, (c, w, h) => {
     c.fillStyle = '#e8b45a';

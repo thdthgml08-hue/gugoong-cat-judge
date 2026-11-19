@@ -191,7 +191,7 @@ class Game {
     const portrait = h > w;
     this.camera.fov = portrait ? 60 : 55;
     this.cam.dist = portrait ? 5.7 : 4.3;
-    this.cam.pitch = portrait ? 0.4 : 0.36;
+    this.cam.pitch = portrait ? 0.31 : 0.36;
     this.camera.updateProjectionMatrix();
   }
 
@@ -753,6 +753,10 @@ class Game {
       desired = target.clone().add(dir.multiplyScalar(d));
     }
     if (desired.y < 0.55) desired.y = 0.55;
+    // 문 근처에서는 카메라를 문틀 아래로 낮춰 벽에 가리지 않게
+    if (Math.abs(pos.z) < 4.5 && Math.abs(pos.x) < 3.4) {
+      desired.y = Math.min(desired.y, 2.3);
+    }
 
     if (!cam.init) {
       cam.cur.copy(desired);
