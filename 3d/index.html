@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>구공이 90점 채점소 · 3D 미니 탐험판</title>
-<meta name="description" content="3D 구공이가 되어 집 안 거실에서 골목길까지 걸어 다니며 인간 여섯을 90점으로 채점하는 미니 탐험 게임. 기준은 고양이.">
+<title>구공이 장난 관찰소 · 3D 미니 탐험판</title>
+<meta name="description" content="고양이 눈높이 40cm, 1인칭 구공이가 되어 인간 여섯을 몰래 관찰하고 발목을 톡 건드리는 장난꾸러기 미니 탐험 게임.">
 <meta name="theme-color" content="#f7e9d0">
-<meta property="og:title" content="구공이 90점 채점소 · 3D 미니 탐험판">
-<meta property="og:description" content="거실에서 골목까지. 3D 구공이가 직접 걸어 다니며 인간을 90점으로 채점한다.">
+<meta property="og:title" content="구공이 장난 관찰소 · 3D 미니 탐험판">
+<meta property="og:description" content="거실에서 골목까지. 고양이 눈으로 사람을 올려다보고, 관찰하고, 장난친다.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" href="../assets/favicon.png" type="image/png">
@@ -23,13 +23,17 @@
     <div class="hud-row">
       <div class="area-pill"><span class="live"></span><span id="area-name">집 안</span></div>
       <div class="hud-right">
+        <div class="viewseg" id="viewseg" role="group" aria-label="시점 전환">
+          <button type="button" data-view="first" class="on" aria-pressed="true">1인칭</button>
+          <button type="button" data-view="third" aria-pressed="false">3인칭</button>
+        </div>
         <button id="btn-sound" class="ico" aria-label="소리 켜기/끄기">🔊</button>
         <button id="btn-help" class="ico" aria-label="조작법">?</button>
       </div>
     </div>
     <div class="progress">
       <div class="dots" id="dots"></div>
-      <span class="prog-label" id="prog-text">채점 0/6</span>
+      <span class="prog-label" id="prog-text">장난 0/6</span>
     </div>
   </header>
 
@@ -38,24 +42,33 @@
       <b id="cap-name"></b>
       <p id="cap-line"></p>
     </div>
-    <div id="hint" class="hint">화면 왼쪽을 <b>드래그</b>해 걷고, <b>바닥을 톡</b> 누르면 그쪽으로 간다.</div>
-    <button id="btn-grade" class="grade" hidden>
-      <span class="grade-badge">90</span>
-      <span class="grade-txt"><b>채점하기 · 90점!</b><small id="grade-target">인간</small></span>
-    </button>
+    <div id="hint" class="hint">화면 왼쪽을 <b>드래그</b>해 걷고, 오른쪽을 <b>드래그</b>해 둘러본다. 바닥을 <b>톡</b> 누르면 그쪽으로.</div>
+    <div id="actions" class="actions" hidden>
+      <div class="actions-who" id="action-target">사람</div>
+      <div class="actions-row">
+        <button id="btn-observe" class="act observe" type="button">
+          <span class="act-ico" aria-hidden="true">👀</span>
+          <span class="act-txt"><b>관찰</b></span>
+        </button>
+        <button id="btn-prank" class="act prank" type="button">
+          <span class="act-ico" aria-hidden="true">🐾</span>
+          <span class="act-txt"><b>장난치기</b><small id="prank-kind">발목 톡</small></span>
+        </button>
+      </div>
+    </div>
   </div>
 
-  <div id="stick" class="stick" hidden><div id="stick-knob"></div></div>
+  <div id="stick" class="stick" hidden><div id="stick-knob" class="stick-knob"></div></div>
 
   <section id="title" class="screen">
     <div class="title-card">
       <div class="mascot"><img src="../assets/gugoong.png" alt="90 팻말을 문 구공이"></div>
-      <p class="kicker">3D 미니 탐험판</p>
-      <h1>구공이 <span>90</span>점 채점소</h1>
+      <p class="kicker">3D 미니 탐험판 · 1인칭</p>
+      <h1>구공이 <span>장난</span> 관찰소</h1>
       <p class="lead">
-        집 안 거실에서 문을 지나 골목길까지.<br>
-        구공이가 되어 직접 걸어 다니며<br>
-        인간 여섯을 90점으로 채점한다.
+        고양이 눈높이 40cm.<br>
+        사람들을 몰래 올려다보며 관찰하고,<br>
+        발목을 톡 건드려 놀라게 한다.
       </p>
       <div class="btns">
         <button id="btn-start" class="btn primary">탐험 시작</button>
@@ -67,14 +80,14 @@
 
   <section id="done" class="screen done-screen" hidden>
     <div class="title-card done-card">
-      <p class="kicker">오늘의 채점</p>
-      <h1>6명 전원 <span>90</span>점</h1>
+      <p class="kicker">오늘의 장난</p>
+      <h1>장난꾸러기 <span>고양이</span></h1>
       <div class="stats">
-        <div><b>6/6</b><small>채점</small></div>
-        <div><b>90</b><small>평균 점수</small></div>
+        <div><b id="stat-prank">6/6</b><small>장난</small></div>
+        <div><b id="stat-observe">0/6</b><small>관찰</small></div>
         <div><b id="stat-dist">0m</b><small>걸은 거리</small></div>
       </div>
-      <p class="done-line">남은 60점은 인간들이 알아서 채워 올 것.<br>채점은 여기까지.</p>
+      <p class="done-line">여섯 명을 한 번씩 다 놀렸다.<br>점수는 안 매겼지만, 다들 오늘 나를 기억할 것.</p>
       <div class="btns">
         <button id="btn-again" class="btn primary">다시 탐험</button>
         <button id="btn-walk" class="btn ghost">계속 걷기</button>
@@ -84,14 +97,16 @@
 
   <div id="help" class="modal" hidden>
     <div class="modal-card">
-      <h3>조작과 채점</h3>
+      <h3>조작과 장난</h3>
       <ul>
-        <li><b>걷기</b> — 화면 왼쪽을 드래그하면 조이스틱이 생긴다. 바닥을 톡 누르면 그쪽으로 걸어간다.</li>
-        <li><b>카메라</b> — 화면 오른쪽을 드래그하면 시점이 돈다. 걸으면 카메라가 뒤따라온다.</li>
-        <li><b>키보드</b> — WASD · 방향키로 걷고, <b>Space</b>로 가까운 인간을 채점한다.</li>
-        <li><b>채점</b> — 인간 근처에 가면 <b>채점하기</b> 버튼이 뜬다. 누르면 90점 팻말과 한마디가 나온다.</li>
+        <li><b>걷기</b> — 화면 왼쪽을 드래그하면 조이스틱이 생긴다. 바닥을 톡 눌러도 그쪽으로 걸어간다.</li>
+        <li><b>둘러보기</b> — 화면 오른쪽을 드래그하면 고양이 고개가 돌아간다. 위아래로는 살짝만.</li>
+        <li><b>시점</b> — 위쪽 <b>1인칭 / 3인칭</b> 버튼으로 바꾼다. 처음엔 언제나 1인칭(고양이 눈높이 40cm).</li>
+        <li><b>키보드</b> — WASD·방향키로 걷고, <b>Q</b> 관찰 · <b>Space</b> 장난 · <b>V</b> 시점 전환.</li>
+        <li><b>관찰</b> — 사람 앞에서 <b>👀 관찰</b>을 누르면 구공이의 엉뚱한 혼잣말이 뜬다.</li>
+        <li><b>장난치기</b> — <b>🐾 장난치기</b>를 누르면 발목 톡 · 야옹! · 상자 밀기로 사람을 놀라게 한다.</li>
       </ul>
-      <p class="modal-note">거실에 2명, 골목길에 4명. 여섯 명을 모두 채점하면 오늘의 채점이 끝난다.<br>모두 90점인 이유는, 남은 10점이 인간 몫이라서다.</p>
+      <p class="modal-note">거실에 2명, 골목길에 4명. 여섯 명을 모두 한 번씩 놀리면 오늘의 장난 끝.<br>한 번 놀린 사람은 한 번 더 놀릴 수 있다. 점수는 없다. 재미만 있다.</p>
       <button id="btn-close-help" class="btn primary">알겠다</button>
     </div>
   </div>

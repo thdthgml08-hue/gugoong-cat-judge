@@ -109,6 +109,52 @@ export class Sfx {
     this._noise({ freq: 300, freqEnd: 1600, dur: 0.3, gain: 0.05, q: 0.6 });
   }
 
+  /** 앞발로 툭 — 짧은 바람 소리 */
+  swipe() {
+    this._noise({ freq: 2600, freqEnd: 620, dur: 0.17, gain: 0.05, q: 0.9 });
+    this._tone({ freq: 300, freqEnd: 180, dur: 0.1, type: 'sine', gain: 0.06, delay: 0.1 });
+  }
+
+  /** 야옹 — 올라갔다 내려오는 비브라토 */
+  meow() {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const vib = ctx.createOscillator();
+    const vibGain = ctx.createGain();
+    const g = ctx.createGain();
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 1150;
+    f.Q.value = 1.1;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(470, t0);
+    osc.frequency.exponentialRampToValueAtTime(880, t0 + 0.09);
+    osc.frequency.exponentialRampToValueAtTime(1010, t0 + 0.19);
+    osc.frequency.exponentialRampToValueAtTime(700, t0 + 0.32);
+    osc.frequency.exponentialRampToValueAtTime(420, t0 + 0.44);
+    vib.type = 'sine';
+    vib.frequency.value = 17;
+    vibGain.gain.value = 26;
+    vib.connect(vibGain).connect(osc.frequency);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.15, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.46);
+    osc.connect(f).connect(g).connect(this.master);
+    vib.start(t0);
+    osc.start(t0);
+    vib.stop(t0 + 0.48);
+    osc.stop(t0 + 0.5);
+  }
+
+  /** 사람이 화들짝 — 짧게 튀는 소리 */
+  startle() {
+    this._tone({ freq: 640, freqEnd: 1180, dur: 0.11, type: 'triangle', gain: 0.09 });
+    this._tone({ freq: 520, freqEnd: 300, dur: 0.16, type: 'sine', gain: 0.06, delay: 0.1 });
+  }
+
   complete() {
     const notes = [783.99, 987.77, 1174.66, 1567.98];
     notes.forEach((f, i) => {

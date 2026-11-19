@@ -369,6 +369,98 @@ export function badgeTexture() {
   }, { repeat: false });
 }
 
+/** 장난 친 뒤 인간 머리 위에 뜨는 놀란 말풍선 */
+export function shoutTexture(text, sub = '') {
+  return canvasTexture(512, 256, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    const x = 14;
+    const y = 12;
+    const bw = w - 28;
+    const bh = 170;
+    const r = 50;
+    // 살짝 삐뚤빼뚤한 말풍선
+    c.fillStyle = 'rgba(255,250,240,0.98)';
+    c.strokeStyle = '#7b4a27';
+    c.lineWidth = 11;
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + bw, y + 4, x + bw - 4, y + bh, r);
+    c.arcTo(x + bw - 6, y + bh, x, y + bh, r);
+    c.arcTo(x, y + bh - 4, x, y, r);
+    c.arcTo(x + 4, y, x + bw, y - 2, r);
+    c.closePath();
+    c.fill();
+    c.stroke();
+    // 꼬리
+    c.beginPath();
+    c.moveTo(w / 2 - 40, y + bh - 4);
+    c.lineTo(w / 2 - 12, h - 10);
+    c.lineTo(w / 2 + 26, y + bh - 4);
+    c.closePath();
+    c.fillStyle = 'rgba(255,250,240,0.98)';
+    c.fill();
+    c.strokeStyle = '#7b4a27';
+    c.lineWidth = 11;
+    c.stroke();
+
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = '#c9704f';
+    const size = text.length > 5 ? 74 : text.length > 3 ? 92 : 108;
+    c.font = `700 ${size}px ${FONT}`;
+    c.fillText(text, w / 2, sub ? 78 : 92);
+    if (sub) {
+      c.fillStyle = '#a9703f';
+      c.font = `700 30px ${FONT}`;
+      c.fillText(sub, w / 2, 142);
+    }
+  }, { repeat: false });
+}
+
+/** 장난 성공 표시 (발도장 스티커) */
+export function pawBadgeTexture() {
+  return canvasTexture(256, 256, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#f8ebd2';
+    c.strokeStyle = '#a9703f';
+    c.lineWidth = 12;
+    c.beginPath();
+    c.arc(w / 2, h / 2, 106, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.fillStyle = '#7b4a27';
+    paw(c, w / 2, h / 2 + 10, 66, 0);
+    // 반짝
+    c.strokeStyle = '#e8b45a';
+    c.lineWidth = 8;
+    c.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const a = -0.9 + i * 0.9;
+      c.beginPath();
+      c.moveTo(w * 0.76 + Math.cos(a) * 26, h * 0.24 + Math.sin(a) * 26);
+      c.lineTo(w * 0.76 + Math.cos(a) * 44, h * 0.24 + Math.sin(a) * 44);
+      c.stroke();
+    }
+  }, { repeat: false });
+}
+
+/** 물방울 무늬 천 (할머니 치마) */
+export function polkaTexture(base = '#8fa88a', dot = '#d6dfbd') {
+  return canvasTexture(256, 256, (c, w, h) => {
+    c.fillStyle = base;
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = dot;
+    for (let y = 0; y < 4; y++) {
+      for (let x = 0; x < 4; x++) {
+        const ox = (y % 2) * 32;
+        c.beginPath();
+        c.arc(x * 64 + 32 + ox, y * 64 + 32, 13, 0, Math.PI * 2);
+        c.fill();
+      }
+    }
+  }, { repeatX: 3, repeatY: 2 });
+}
+
 /** NPC 이름표 */
 export function nameTexture(text, sub = '') {
   return canvasTexture(512, 176, (c, w, h) => {

@@ -15,6 +15,8 @@ export class Gugoong {
     this.blink = 0;
     this.jumpY = 0;
     this.time = 0;
+    this.swipeT = -1;
+    this.swipeKind = '';
 
     this.ears = [];
     this.legs = [];
@@ -278,6 +280,12 @@ export class Gugoong {
     this.gradeT = 0;
   }
 
+  /** 장난 — 앞발로 툭 (ankle · push · scare) */
+  swipe(kind = 'ankle') {
+    this.swipeT = 0;
+    this.swipeKind = kind;
+  }
+
   get isGrading() {
     return this.gradeT >= 0 && this.gradeT < this.gradeDur;
   }
@@ -369,6 +377,33 @@ export class Gugoong {
       this.sign.rotation.x = 0.06;
     }
     this.head.rotation.y = this.headYaw;
+
+    /* 장난 — 앞발을 뻗어 툭 */
+    if (this.swipeT >= 0) {
+      this.swipeT += dt;
+      const p = this.swipeT / 0.75;
+      if (p >= 1) {
+        this.swipeT = -1;
+        this.root.rotation.x = 0;
+      } else {
+        const q = Math.sin(Math.min(1, p * 1.5) * Math.PI);
+        if (this.swipeKind === 'push') {
+          this.legs[0].rotation.x = -1.55 * q;
+          this.legs[1].rotation.x = -1.55 * q;
+          this.root.rotation.x = -0.16 * q;
+        } else if (this.swipeKind === 'scare') {
+          this.legs[0].rotation.x = -0.9 * q;
+          jumpY = Math.max(jumpY, 0.07 * q);
+          this.root.rotation.x = -0.04 * q;
+        } else {
+          this.legs[0].rotation.x = -1.9 * q;
+          this.legs[1].rotation.x = -0.5 * q;
+          this.root.rotation.x = -0.1 * q;
+        }
+        this.head.rotation.x = -0.06 + Math.sin(q * Math.PI) * 0.2;
+      }
+    }
+
     this.jumpY = jumpY;
     this.root.position.y = jumpY;
   }
