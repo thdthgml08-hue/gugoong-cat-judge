@@ -142,41 +142,47 @@ export function woodTexture() {
 
 export function cobbleTexture() {
   return canvasTexture(512, 512, (c, w, h) => {
-    c.fillStyle = '#b9ab97';
+    c.fillStyle = '#948878';
     c.fillRect(0, 0, w, h);
-    const cols = 8;
-    const rows = 8;
+    const cols = 6;
+    const rows = 7;
     const cw = w / cols;
     const ch = h / rows;
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const off = (y % 2) * cw * 0.5;
-        const px = x * cw + off - cw * 0.5;
-        const py = y * ch;
-        const v = 0.86 + Math.random() * 0.14;
-        const rr = Math.round(168 * v);
-        const gg = Math.round(156 * v);
-        const bb = Math.round(139 * v);
-        c.fillStyle = `rgb(${rr},${gg},${bb})`;
+    for (let y = -1; y <= rows; y++) {
+      for (let x = -1; x <= cols; x++) {
+        const off = (Math.abs(y) % 2) * cw * 0.5;
+        const cx = x * cw + off + cw / 2;
+        const cy = y * ch + ch / 2;
+        const rw = cw * (0.43 + Math.random() * 0.05);
+        const rh = ch * (0.42 + Math.random() * 0.05);
+        const v = 0.93 + Math.random() * 0.12;
+        const r = Math.round(174 * v);
+        const g = Math.round(162 * v);
+        const b = Math.round(143 * v);
+        c.fillStyle = `rgb(${r},${g},${b})`;
         c.beginPath();
-        const rad = 16;
-        const x0 = px + 4;
-        const y0 = py + 4;
-        const x1 = px + cw - 4;
-        const y1 = py + ch - 4;
-        c.moveTo(x0 + rad, y0);
-        c.arcTo(x1, y0, x1, y1, rad);
-        c.arcTo(x1, y1, x0, y1, rad);
-        c.arcTo(x0, y1, x0, y0, rad);
-        c.arcTo(x0, y0, x1, y0, rad);
+        const pts = 9;
+        for (let k = 0; k < pts; k++) {
+          const a = (k / pts) * Math.PI * 2;
+          const rr = 0.9 + Math.random() * 0.14;
+          const px = cx + Math.cos(a) * rw * rr;
+          const py = cy + Math.sin(a) * rh * rr;
+          if (k === 0) c.moveTo(px, py);
+          else c.lineTo(px, py);
+        }
         c.closePath();
         c.fill();
-        c.strokeStyle = 'rgba(90,78,62,0.18)';
+        c.strokeStyle = 'rgba(78,68,56,0.10)';
         c.lineWidth = 2;
         c.stroke();
       }
     }
-  }, { repeatX: 2, repeatY: 10 });
+    // 먼지 · 자갈
+    for (let i = 0; i < 700; i++) {
+      c.fillStyle = Math.random() > 0.5 ? 'rgba(255,248,232,0.05)' : 'rgba(60,52,44,0.05)';
+      c.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+  }, { repeatX: 2, repeatY: 9 });
 }
 
 export function asphaltTexture() {

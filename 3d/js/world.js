@@ -467,17 +467,10 @@ export function buildWorld() {
       facade.add(box(0.16, 0.1, 1.1, std(0xfff6e4), side * 5.45, 2.0, dz));
       // 차양 (가게 느낌)
       if (i === 1) {
-        const stripe = canvasTexture(128, 64, (c, w, h) => {
-          for (let s = 0; s < 8; s++) {
-            c.fillStyle = s % 2 ? '#c9704f' : '#f8efdd';
-            c.fillRect((s * w) / 8, 0, w / 8, h);
-          }
-        }, { repeat: false });
-        const aw = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 3.2), new THREE.MeshBasicMaterial({ map: stripe }));
-        aw.position.set(side * 5.45, 2.45, z0 + 1.2);
-        aw.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-        aw.rotation.x = 0.35;
-        facade.add(aw);
+        const awning = box(1.0, 0.07, 3.2, std(0xc9704f, { roughness: 0.95 }), side * 5.05, 2.42, z0 + 1.1, { rotZ: side * 0.22 });
+        facade.add(awning);
+        facade.add(box(1.02, 0.09, 0.1, std(0xf8efdd), side * 5.05, 2.38, z0 + 2.7, { rotZ: side * 0.22 }));
+        facade.add(box(1.02, 0.09, 0.1, std(0xf8efdd), side * 5.05, 2.38, z0 - 0.5, { rotZ: side * 0.22 }));
       }
     }
   }
