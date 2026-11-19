@@ -441,7 +441,30 @@ export function buildWorld() {
   plateFace.position.z = 0.025;
   plateFace.rotation.y = Math.PI;
   plate.add(plateFace);
+  const plateFace2 = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.2), new THREE.MeshBasicMaterial({ map: plateTex }));
+  plateFace2.position.z = -0.025;
+  plate.add(plateFace2);
   root.add(plate);
+
+  /* ─────────────── 현관 신발장 · 우산꽂이 ─────────────── */
+  const entry = new THREE.Group();
+  entry.position.set(3.15, 0, -0.85);
+  entry.add(box(1.05, 0.5, 0.4, mWoodDark, 0, 0.25, 0));
+  entry.add(box(1.1, 0.05, 0.44, mWood, 0, 0.52, 0));
+  entry.add(box(0.4, 0.09, 0.24, std(0x8f7bb5), -0.25, 0.09, 0.06));
+  entry.add(box(0.4, 0.09, 0.24, std(0xc9a15a), 0.24, 0.09, 0.02));
+  root.add(entry);
+  addCollider(3.15, -0.85, 1.1, 0.5);
+
+  const umbrella = new THREE.Group();
+  umbrella.position.set(2.25, 0, -0.55);
+  umbrella.add(cyl(0.15, 0.13, 0.42, std(0x8f9c86), 0, 0.21, 0, 14));
+  for (const [dx, dz, h] of [[-0.04, 0.02, 0.85], [0.05, -0.04, 0.8]]) {
+    umbrella.add(cyl(0.025, 0.025, h, std(0x4a4256), dx, h / 2 + 0.1, dz, 6));
+    umbrella.add(cyl(0.02, 0.02, 0.12, std(0x6d5a48), dx, h + 0.14, dz, 6));
+  }
+  root.add(umbrella);
+  addCollider(2.25, -0.55, 0.45, 0.45);
 
   const porchLamp = new THREE.Group();
   porchLamp.position.set(-1.95, 2.35, 0.18);
