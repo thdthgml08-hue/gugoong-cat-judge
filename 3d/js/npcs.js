@@ -282,10 +282,10 @@ export function makePerson(cfg = {}) {
 
   // 벨트
   if (o.belt) {
-    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.208, 0.026, 8, 24), accent);
+    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.186, 0.024, 8, 24), accent);
     belt.rotation.x = Math.PI / 2;
     belt.position.y = 0.035;
-    belt.scale.set(1, 0.9, 1);
+    belt.scale.set(1, 0.88, 0.92);
     upper.add(belt);
   }
 

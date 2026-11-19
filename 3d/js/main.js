@@ -1091,7 +1091,7 @@ class Game {
       // 장난 성공 스티커
       const wantBadge = n.pranked && n.react.t < 0 ? 1 : 0;
       n.badge.material.opacity += (wantBadge - n.badge.material.opacity) * Math.min(1, dt * 4);
-      n.badge.position.y = (def.seatY ? 1.62 : 1.9) * (def.scale ?? 1) + 0.3 + Math.sin(t * 2 + n.phase) * 0.03;
+      n.badge.position.y = (def.seatY ? 1.5 : 1.78) * (def.scale ?? 1) + 0.32 + Math.sin(t * 2 + n.phase) * 0.03;
       const bs = clamp(dCam / 7, 0.5, 1.2);
       n.badge.scale.set(0.46 * bs, 0.46 * bs, 1);
     }
