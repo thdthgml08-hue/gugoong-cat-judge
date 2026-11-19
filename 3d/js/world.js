@@ -298,6 +298,25 @@ export function buildWorld() {
   root.add(tower);
   addCollider(6.15, -12.2, 1.4, 1.4);
 
+  /* ─────────────── 펫방석 · 장난감 ─────────────── */
+  const bed = new THREE.Group();
+  bed.position.set(3.9, 0, -7.6);
+  bed.add(cyl(0.72, 0.66, 0.16, std(0xc9704f, { roughness: 1 }), 0, 0.08, 0, 24));
+  bed.add(cyl(0.55, 0.55, 0.12, std(0xf3dcc0, { roughness: 1 }), 0, 0.14, 0, 24));
+  bed.add(new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.1, 8, 24), std(0xb1544c, { roughness: 1 })));
+  bed.children[2].rotation.x = Math.PI / 2;
+  bed.children[2].position.y = 0.12;
+  root.add(bed);
+
+  const ball = sphere(0.16, std(0xd98b4a, { roughness: 0.8 }), 1.75, 0.16, -9.6, 14);
+  root.add(ball);
+  const mouseToy = new THREE.Group();
+  mouseToy.position.set(-1.4, 0, -11.2);
+  mouseToy.add(sphere(0.13, std(0x9a8f80), 0, 0.11, 0, 12));
+  mouseToy.add(sphere(0.02, std(COL.ink), 0.04, 0.2, 0.1, 6));
+  mouseToy.add(cyl(0.012, 0.008, 0.3, std(0x8a8078), 0, 0.08, -0.2, 5).rotateX(Math.PI / 2));
+  root.add(mouseToy);
+
   /* ─────────────── 화분 ─────────────── */
   const plant = new THREE.Group();
   plant.position.set(3.35, 0, -13.15);
@@ -344,7 +363,7 @@ export function buildWorld() {
   lamp.add(bulb);
   root.add(lamp);
 
-  const roomLight = new THREE.PointLight(0xffd9a0, 12, 15, 2);
+  const roomLight = new THREE.PointLight(0xffd9a0, 20, 17, 2);
   roomLight.position.set(-0.6, 2.72, -6.4);
   roomLight.castShadow = false;
   root.add(roomLight);
@@ -760,7 +779,7 @@ export function buildWorld() {
   }
 
   /* ─────────────── 조명 ─────────────── */
-  const hemi = new THREE.HemisphereLight(0xfff1d8, 0x8a6f56, 0.85);
+  const hemi = new THREE.HemisphereLight(0xfff1d8, 0x9a7f63, 1.15);
   root.add(hemi);
 
   const sun = new THREE.DirectionalLight(0xffe0b0, 2.1);
@@ -793,7 +812,7 @@ export function buildWorld() {
     }
     // 가로등 살짝 일렁임
     streetLight.intensity = 9 + Math.sin(t * 1.7) * 0.5;
-    roomLight.intensity = 12 + Math.sin(t * 2.3) * 0.4;
+    roomLight.intensity = 20 + Math.sin(t * 2.3) * 0.6;
   };
 
   return { root, colliders, occluders, groundPick, update };

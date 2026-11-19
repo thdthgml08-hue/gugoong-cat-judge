@@ -90,20 +90,22 @@ export class Gugoong {
 
     /* ── 꼬리 (엉덩이 위로 말려 올라간다) ── */
     const tailRoot = new THREE.Group();
-    tailRoot.position.set(0, 0.56, -0.56);
-    tailRoot.rotation.set(1.18, 0.26, 0.08);
+    tailRoot.position.set(0, 0.58, -0.5);
+    tailRoot.rotation.set(0.98, 0, -0.42);
     root.add(tailRoot);
+    const tailBase = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), fur);
+    tailRoot.add(tailBase);
     let parent = tailRoot;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 7; i++) {
       const seg = new THREE.Group();
-      seg.position.set(0, 0, i === 0 ? 0 : -0.098);
-      seg.rotation.x = i === 0 ? 0.08 : 0.05;
-      const baseR = 0.073 - i * 0.0052;
+      seg.position.set(0, 0, i === 0 ? 0 : -0.092);
+      seg.rotation.x = i === 0 ? 0.06 : 0.05;
+      const baseR = 0.07 - i * 0.0048;
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(1, 12, 9),
-        i % 2 === 0 ? fur : std(COL.patch, { roughness: 0.85 })
+        Math.floor(i / 2) % 2 === 0 ? fur : std(COL.patch, { roughness: 0.85 })
       );
-      m.scale.set(baseR, baseR, baseR * 1.45);
+      m.scale.set(baseR, baseR, baseR * 1.75);
       m.castShadow = true;
       seg.add(m);
       parent.add(seg);
@@ -113,7 +115,7 @@ export class Gugoong {
 
     /* ── 머리 ── */
     const headG = new THREE.Group();
-    headG.position.set(0, 0.8, 0.32);
+    headG.position.set(0, 0.83, 0.34);
     root.add(headG);
     this.head = headG;
 
@@ -306,7 +308,7 @@ export class Gugoong {
     const tailAmp = moving ? 0.26 : 0.15;
     this.tailSegs.forEach((seg, i) => {
       seg.rotation.y = Math.sin(time * (moving ? 4.2 : 2.0) - i * 0.55) * tailAmp * (0.35 + i * 0.1);
-      seg.rotation.x = (i === 0 ? 0.08 : 0.05) + Math.sin(time * 2.4 - i * 0.4) * 0.045;
+      seg.rotation.x = (i === 0 ? 0.06 : 0.05) + Math.sin(time * 2.4 - i * 0.4) * 0.045;
     });
 
     /* 귀 */
