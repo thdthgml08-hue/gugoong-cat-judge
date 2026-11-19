@@ -10,6 +10,7 @@ export function makePerson(cfg = {}) {
   const skin = std(cfg.skin ?? SKIN, { roughness: 0.8 });
   const hairCol = std(cfg.hair ?? 0x4a3328, { roughness: 0.85 });
   const shirt = std(cfg.shirt ?? 0x6f9174, { roughness: 0.9 });
+  const sleeveMat = std(new THREE.Color(cfg.shirt ?? 0x6f9174).multiplyScalar(0.86).getHex(), { roughness: 0.92 });
   const pants = std(cfg.pants ?? 0x3f4a5c, { roughness: 0.9 });
   const shoes = std(cfg.shoes ?? 0x3a2c22, { roughness: 0.8 });
 
@@ -36,11 +37,10 @@ export function makePerson(cfg = {}) {
   upper.position.y = 0.82;
   g.add(upper);
 
-  const torso = box(0.42, 0.5, 0.24, shirt, 0, 0.26, 0);
-  torso.geometry = new THREE.BoxGeometry(0.42, 0.5, 0.24);
+  const torso = box(0.38, 0.46, 0.23, shirt, 0, 0.25, 0);
   upper.add(torso);
   // 어깨
-  const shoulders = box(0.46, 0.1, 0.25, shirt, 0, 0.47, 0);
+  const shoulders = box(0.42, 0.09, 0.24, shirt, 0, 0.46, 0);
   upper.add(shoulders);
   // 목
   upper.add(cyl(0.05, 0.055, 0.08, skin, 0, 0.55, 0));
@@ -49,18 +49,18 @@ export function makePerson(cfg = {}) {
   headG.position.set(0, 0.7, 0);
   upper.add(headG);
 
-  const head = sphere(0.172, skin, 0, 0, 0, 20);
+  const head = sphere(0.185, skin, 0, 0, 0, 20);
   head.scale.set(1, 1.06, 0.98);
   headG.add(head);
 
   // 눈
   for (const s of [-1, 1]) {
-    const eye = sphere(0.018, std(0x33241a, { roughness: 0.4 }), s * 0.06, 0.015, 0.152, 8);
+    const eye = sphere(0.019, std(0x33241a, { roughness: 0.4 }), s * 0.066, 0.016, 0.163, 8);
     eye.scale.set(1, 1.15, 0.6);
     headG.add(eye);
   }
   // 코
-  const nose = sphere(0.019, std(0xe0b18d), 0, -0.022, 0.168, 8);
+  const nose = sphere(0.02, std(0xe0b18d), 0, -0.026, 0.18, 8);
   nose.scale.set(1, 1.1, 0.9);
   headG.add(nose);
   // 입
@@ -68,14 +68,14 @@ export function makePerson(cfg = {}) {
     new THREE.TorusGeometry(0.032, 0.006, 6, 12, Math.PI),
     std(0x8a5a4a, { roughness: 0.7 })
   );
-  mouth.position.set(0, -0.075, 0.153);
+  mouth.position.set(0, -0.082, 0.164);
   mouth.rotation.set(0, 0, Math.PI);
   headG.add(mouth);
 
   // 머리카락
   const style = cfg.hairStyle ?? 'short';
   const hairCap = new THREE.Mesh(
-    new THREE.SphereGeometry(0.18, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.44),
+    new THREE.SphereGeometry(0.194, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.44),
     hairCol
   );
   hairCap.position.y = 0.022;
@@ -91,13 +91,13 @@ export function makePerson(cfg = {}) {
     headG.add(box(0.06, 0.3, 0.09, hairCol, -0.14, -0.1, 0.06));
     headG.add(box(0.06, 0.3, 0.09, hairCol, 0.14, -0.1, 0.06));
   } else if (style === 'cap') {
-    const cap = cyl(0.17, 0.178, 0.1, std(cfg.capColor ?? 0x3f5a6b), 0, 0.13, 0, 16);
+    const cap = cyl(0.182, 0.19, 0.1, std(cfg.capColor ?? 0x3f5a6b), 0, 0.14, 0, 16);
     headG.add(cap);
     headG.add(box(0.27, 0.03, 0.16, std(cfg.capColor ?? 0x3f5a6b), 0, 0.085, 0.12));
     hairCap.visible = false;
   } else if (style === 'scarf') {
     const scarf = new THREE.Mesh(
-      new THREE.SphereGeometry(0.198, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.42),
+      new THREE.SphereGeometry(0.212, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.42),
       std(cfg.scarfColor ?? 0x8f7bb5, { roughness: 0.95 })
     );
     scarf.position.y = 0.006;
@@ -109,7 +109,7 @@ export function makePerson(cfg = {}) {
   } else if (style === 'bald') {
     hairCap.visible = false;
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.125, 0.028, 6, 16, Math.PI),
+      new THREE.TorusGeometry(0.138, 0.03, 6, 16, Math.PI),
       hairCol
     );
     ring.position.set(0, 0.06, -0.01);
@@ -120,26 +120,26 @@ export function makePerson(cfg = {}) {
   if (cfg.glasses) {
     for (const s of [-1, 1]) {
       const lens = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.008, 6, 14), std(0x4d3320));
-      lens.position.set(s * 0.058, 0.012, 0.145);
+      lens.position.set(s * 0.064, 0.012, 0.156);
       headG.add(lens);
     }
-    headG.add(box(0.03, 0.007, 0.007, std(0x4d3320), 0, 0.012, 0.145));
+    headG.add(box(0.03, 0.007, 0.007, std(0x4d3320), 0, 0.012, 0.156));
   }
 
   /* 팔 */
   const arms = [];
   for (const s of [-1, 1]) {
     const shoulder = new THREE.Group();
-    shoulder.position.set(s * 0.25, 0.46, 0);
+    shoulder.position.set(s * 0.235, 0.45, 0);
     upper.add(shoulder);
-    const upperArm = box(0.1, 0.29, 0.12, shirt, 0, -0.145, 0);
+    const upperArm = box(0.095, 0.29, 0.115, sleeveMat, 0, -0.145, 0);
     shoulder.add(upperArm);
     const elbow = new THREE.Group();
     elbow.position.y = -0.29;
     shoulder.add(elbow);
-    const fore = box(0.09, 0.27, 0.1, cfg.sleeve ? shirt : skin, 0, -0.135, 0);
+    const fore = box(0.085, 0.27, 0.095, cfg.sleeve ? sleeveMat : skin, 0, -0.135, 0);
     elbow.add(fore);
-    const hand = sphere(0.058, skin, 0, -0.285, 0.01, 10);
+    const hand = sphere(0.064, skin, 0, -0.285, 0.012, 10);
     hand.scale.set(1, 0.95, 0.85);
     elbow.add(hand);
     arms.push({ shoulder, elbow, hand, side: s });
@@ -155,9 +155,9 @@ function holdItem(person, item) {
   const L = arms.find((a) => a.side === -1);
 
   if (item === 'churu') {
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.24, 8), std(0xfff6e4));
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.26, 8), std(0xfffaf0));
     stick.rotation.set(1.3, 0, 0);
-    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.07, 8), std(0xd98b4a));
+    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.09, 8), std(0xe07a3a));
     tip.rotation.x = 1.3;
     stick.position.set(0, -0.26, 0.12);
     tip.position.set(0, -0.22, 0.2);
@@ -225,9 +225,9 @@ export const NPC_DEFS = [
     name: '빈손 방문객',
     tag: '초인종만 눌렀다',
     area: 'room',
-    pos: [-5.15, -12.28],
+    pos: [-5.15, -12.18],
     rotY: 0,
-    seatY: 0.5,
+    seatY: 0.66,
     pose: 'sit',
     look: { skin: 0xeec6a0, hair: 0x3b2b22, shirt: 0x6f9174, pants: 0x6b4a38, hairStyle: 'short' },
     line: '90점. 손은 비었는데 눈은 내 츄르를 찾고 있었다. 남은 10점은 그 손이 뭘 들고 오는지로 채점한다.',
