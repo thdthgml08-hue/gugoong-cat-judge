@@ -188,7 +188,10 @@ class Game {
     const h = window.innerHeight;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
-    this.camera.fov = h > w ? 62 : 55;
+    const portrait = h > w;
+    this.camera.fov = portrait ? 60 : 55;
+    this.cam.dist = portrait ? 5.1 : 4.3;
+    this.cam.pitch = portrait ? 0.4 : 0.36;
     this.camera.updateProjectionMatrix();
   }
 

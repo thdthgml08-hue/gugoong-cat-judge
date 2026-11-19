@@ -75,7 +75,7 @@ export class Gugoong {
     for (const [x, y, z] of legPos) {
       const pivot = new THREE.Group();
       pivot.position.set(x, y, z);
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.32, 0.16), fur);
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.165, 0.32, 0.17), fur);
       leg.position.y = -0.16;
       leg.castShadow = true;
       pivot.add(leg);
@@ -90,8 +90,8 @@ export class Gugoong {
 
     /* ── 꼬리 (엉덩이 위로 말려 올라간다) ── */
     const tailRoot = new THREE.Group();
-    tailRoot.position.set(0, 0.58, -0.5);
-    tailRoot.rotation.set(0.98, 0, -0.42);
+    tailRoot.position.set(0, 0.6, -0.5);
+    tailRoot.rotation.set(1.02, 0, -0.62);
     root.add(tailRoot);
     const tailBase = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), fur);
     tailRoot.add(tailBase);
@@ -115,7 +115,7 @@ export class Gugoong {
 
     /* ── 머리 ── */
     const headG = new THREE.Group();
-    headG.position.set(0, 0.83, 0.34);
+    headG.position.set(0, 0.86, 0.36);
     root.add(headG);
     this.head = headG;
 
@@ -126,8 +126,8 @@ export class Gugoong {
     ];
     const headGeo = paintSpots(new THREE.SphereGeometry(1, 30, 24), COL.cream, headSpots);
     const headMesh = new THREE.Mesh(headGeo, furMat);
-    headMesh.scale.set(0.3, 0.285, 0.275);
-    headMesh.position.y = 0.13;
+    headMesh.scale.set(0.325, 0.31, 0.3);
+    headMesh.position.y = 0.14;
     headMesh.castShadow = true;
     headMesh.receiveShadow = true;
     headG.add(headMesh);
