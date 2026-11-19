@@ -336,7 +336,7 @@ export function buildNpcs(parent) {
         opacity: 0,
       })
     );
-    nameSprite.scale.set(1.22, 0.42, 1);
+    nameSprite.scale.set(0.95, 0.33, 1);
     nameSprite.position.set(def.pos[0], (def.seatY ? 1.55 : 1.95) * scale, def.pos[1]);
     nameSprite.renderOrder = 8;
     parent.add(nameSprite);

@@ -100,12 +100,13 @@ export class Gugoong {
       const seg = new THREE.Group();
       seg.position.set(0, 0, i === 0 ? 0 : -0.092);
       seg.rotation.x = i === 0 ? 0.06 : 0.05;
-      const baseR = 0.07 - i * 0.0048;
+      const baseR = 0.072 - i * 0.0042;
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 12, 9),
+        new THREE.CapsuleGeometry(baseR, 0.075, 4, 10),
         Math.floor(i / 2) % 2 === 0 ? fur : std(COL.patch, { roughness: 0.85 })
       );
-      m.scale.set(baseR, baseR, baseR * 1.75);
+      m.rotation.x = Math.PI / 2;
+      m.position.z = -0.048;
       m.castShadow = true;
       seg.add(m);
       parent.add(seg);

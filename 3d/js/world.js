@@ -798,9 +798,15 @@ export function buildWorld() {
   root.add(sun.target);
   sun.target.position.set(0, 0, 2);
 
-  const fill = new THREE.DirectionalLight(0xa8c8e8, 0.35);
+  const fill = new THREE.DirectionalLight(0xa8c8e8, 0.45);
   fill.position.set(6, 8, -12);
   root.add(fill);
+
+  const fill2 = new THREE.DirectionalLight(0xffd9b8, 0.35);
+  fill2.position.set(-4, 5, 16);
+  root.add(fill2);
+
+  root.add(new THREE.AmbientLight(0xffeedd, 0.28));
 
   /* ─────────────── 갱신 ─────────────── */
   const update = (dt, t) => {
