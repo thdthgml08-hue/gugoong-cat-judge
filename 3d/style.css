@@ -274,7 +274,7 @@ html, body {
   touch-action: manipulation;
 }
 .act-ico { font-size: 18px; line-height: 1; }
-.act-txt { display: flex; flex-direction: column; text-align: left; gap: 1px; }
+.act-txt { display: flex; flex-direction: column; text-align: left; gap: 1px; white-space: nowrap; }
 .act-txt b { font-size: 13.5px; letter-spacing: 0.01em; }
 .act-txt small { font-size: 10px; color: #6b4630; }
 .act.observe {
