@@ -645,10 +645,13 @@ class Game {
       n.group.position.y = (n.def.seatY !== undefined ? n.def.seatY - 0.82 * (n.def.scale ?? 1) : 0)
         + Math.sin(t * 1.6 + n.phase) * 0.006;
 
-      // 이름표
-      const wantOpacity = n.graded ? 0 : d < 7.5 ? (d < 3.4 ? 1 : 0.9) : 0;
+      // 이름표 — 카메라 거리에 맞춰 화면 크기를 일정하게
+      const dCam = this.camera.position.distanceTo(n.group.position);
+      const wantOpacity = n.graded ? 0 : d < 6.5 ? (d < 3.4 ? 1 : 0.85) : 0;
       const mat = n.nameSprite.material;
       mat.opacity += (wantOpacity - mat.opacity) * Math.min(1, dt * 6);
+      const ts = clamp(dCam / 6, 0.4, 1.35);
+      n.nameSprite.scale.set(0.95 * ts, 0.33 * ts, 1);
 
       // 링
       n.ring.visible = !n.graded;
@@ -661,7 +664,9 @@ class Game {
       // 배지
       const wantBadge = n.graded ? 1 : 0;
       n.badge.material.opacity += (wantBadge - n.badge.material.opacity) * Math.min(1, dt * 5);
-      n.badge.position.y = (n.def.seatY ? 1.55 : 1.95) * (n.def.scale ?? 1) + 0.32 + Math.sin(t * 2 + n.phase) * 0.035;
+      n.badge.position.y = (n.def.seatY ? 1.7 : 2.08) * (n.def.scale ?? 1) + 0.32 + Math.sin(t * 2 + n.phase) * 0.035;
+      const bs = clamp(dCam / 7, 0.5, 1.2);
+      n.badge.scale.set(0.5 * bs, 0.5 * bs, 1);
     }
 
     /* 팝업 */

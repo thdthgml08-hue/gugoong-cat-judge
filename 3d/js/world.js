@@ -465,13 +465,7 @@ export function buildWorld() {
       const dz = z0 - w / 2 + 0.75;
       facade.add(box(0.12, 1.95, 0.9, std(0x8a6a52), side * 5.47, 0.98, dz));
       facade.add(box(0.16, 0.1, 1.1, std(0xfff6e4), side * 5.45, 2.0, dz));
-      // 차양 (가게 느낌)
-      if (i === 1) {
-        const awning = box(1.0, 0.07, 3.2, std(0xc9704f, { roughness: 0.95 }), side * 5.05, 2.42, z0 + 1.1, { rotZ: side * 0.22 });
-        facade.add(awning);
-        facade.add(box(1.02, 0.09, 0.1, std(0xf8efdd), side * 5.05, 2.38, z0 + 2.7, { rotZ: side * 0.22 }));
-        facade.add(box(1.02, 0.09, 0.1, std(0xf8efdd), side * 5.05, 2.38, z0 - 0.5, { rotZ: side * 0.22 }));
-      }
+
     }
   }
   root.add(facade);
