@@ -303,6 +303,30 @@ export function buildWorld() {
   root.add(tower);
   addCollider(6.15, -12.2, 1.4, 1.4);
 
+  // 둥근 러그
+  const roundRug = new THREE.Mesh(
+    new THREE.CircleGeometry(1.75, 40),
+    std(0xd9b98f, { roughness: 1 })
+  );
+  roundRug.rotation.x = -Math.PI / 2;
+  roundRug.position.set(1.0, 0.007, -7.3);
+  roundRug.receiveShadow = true;
+  root.add(roundRug);
+  const rugRing = new THREE.Mesh(
+    new THREE.RingGeometry(1.42, 1.58, 40),
+    std(0xc08a52, { roughness: 1 })
+  );
+  rugRing.rotation.x = -Math.PI / 2;
+  rugRing.position.set(1.0, 0.009, -7.3);
+  root.add(rugRing);
+  const rugRing2 = new THREE.Mesh(
+    new THREE.RingGeometry(0.55, 0.62, 32),
+    std(0xe8cba4, { roughness: 1 })
+  );
+  rugRing2.rotation.x = -Math.PI / 2;
+  rugRing2.position.set(1.0, 0.009, -7.3);
+  root.add(rugRing2);
+
   /* ─────────────── 펫방석 · 장난감 ─────────────── */
   const bed = new THREE.Group();
   bed.position.set(3.9, 0, -7.6);

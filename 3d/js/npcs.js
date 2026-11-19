@@ -130,7 +130,8 @@ export function makePerson(cfg = {}) {
   const arms = [];
   for (const s of [-1, 1]) {
     const shoulder = new THREE.Group();
-    shoulder.position.set(s * 0.235, 0.45, 0);
+    shoulder.position.set(s * 0.255, 0.45, 0);
+    shoulder.rotation.z = s * -0.08;
     upper.add(shoulder);
     const upperArm = box(0.095, 0.29, 0.115, sleeveMat, 0, -0.145, 0);
     shoulder.add(upperArm);
