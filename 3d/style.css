@@ -261,7 +261,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.actions-row { display: flex; gap: 9px; align-items: stretch; flex-wrap: wrap; justify-content: center; }
+.actions-row { display: flex; gap: 7px; align-items: stretch; flex-wrap: wrap; justify-content: center; }
 .act {
   display: inline-flex;
   align-items: center;

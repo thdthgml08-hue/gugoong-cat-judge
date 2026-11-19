@@ -648,7 +648,7 @@ class Game {
     if (!force && key === this._scratchState) return;
     this._scratchState = key;
     ui.btnScratch.disabled = !can;
-    ui.scratchHint.textContent = can ? '지금이다!' : '화나면 열린다';
+    ui.scratchHint.textContent = can ? '지금이다!' : '화나면 열림';
   }
 
   knockItem(npc) {
