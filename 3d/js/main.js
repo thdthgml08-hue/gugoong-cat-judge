@@ -409,6 +409,7 @@ class Game {
     if (npc.graded || state.grading) return;
     state.grading = true;
     npc.graded = true;
+    npc.gradedAt = state.time;
     state.graded += 1;
 
     this.cat.grade();
@@ -661,8 +662,8 @@ class Game {
         n.ring.scale.set(s, s, s);
       }
 
-      // 배지
-      const wantBadge = n.graded ? 1 : 0;
+      // 배지 (팝업이 사라진 뒤에 나타난다)
+      const wantBadge = n.graded && state.time - (n.gradedAt ?? 0) > 1.3 ? 1 : 0;
       n.badge.material.opacity += (wantBadge - n.badge.material.opacity) * Math.min(1, dt * 5);
       n.badge.position.y = (n.def.seatY ? 1.7 : 2.08) * (n.def.scale ?? 1) + 0.32 + Math.sin(t * 2 + n.phase) * 0.035;
       const bs = clamp(dCam / 7, 0.5, 1.2);
