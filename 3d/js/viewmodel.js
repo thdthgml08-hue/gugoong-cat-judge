@@ -16,8 +16,8 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const easeOut = (p) => 1 - Math.pow(1 - p, 3);
 
 /* 팻말 궤적 — x는 화면 반폭에 대한 비율 */
-const MOUTH_REST = V(0.06, -1.02, 0.0);
-const DISC_REST = V(-0.9, -0.98, -0.08);
+const MOUTH_REST = V(0.06, -0.94, 0.0);
+const DISC_REST = V(-0.9, -0.88, -0.08);
 const DISC_UP = V(-0.05, 0.27, -0.04);
 const DISC_R = 0.34;
 
@@ -74,7 +74,7 @@ export class Viewmodel {
     /* ── 주둥이 (화면 아래 가운데서 아주 조금) ── */
     const snout = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), fur);
     snout.scale.set(0.30, 0.23, 0.34);
-    snout.position.set(0.0, -1.04, 0.02);
+    snout.position.set(0.0, -0.96, 0.02);
     snout.rotation.x = -0.3;
     this.inner.add(snout);
     this.snout = snout;
@@ -82,7 +82,7 @@ export class Viewmodel {
     // 코끝 (작게)
     const nose = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), pink);
     nose.scale.set(0.05, 0.038, 0.04);
-    nose.position.set(0.0, -0.87, 0.11);
+    nose.position.set(0.0, -0.79, 0.11);
     this.inner.add(nose);
     this.nose = nose;
 
@@ -103,7 +103,7 @@ export class Viewmodel {
       dot.position.set(s * 0.045, 0.062, -0.02);
       g.add(dot);
 
-      g.position.set(s * 0.72, -0.9, 0.02);
+      g.position.set(s * 0.72, -0.82, 0.02);
       this.inner.add(g);
       this.paws.push({ g, side: s, base: g.position.clone() });
     }
@@ -118,7 +118,7 @@ export class Viewmodel {
     });
     for (const s of [-1, 1]) {
       for (let i = 0; i < 3; i++) {
-        const start = V(s * 0.2, -0.96 + i * 0.045, 0.0);
+        const start = V(s * 0.2, -0.88 + i * 0.045, 0.0);
         const dir = V(s * 0.95, 0.32 - i * 0.28, -0.14).normalize();
         const len = 0.62;
         const m = new THREE.Mesh(new THREE.CylinderGeometry(0.0024, 0.0065, 1, 4), whiskMat);
@@ -214,7 +214,7 @@ export class Viewmodel {
     this.disc.position.copy(discPos);
     this.disc.rotation.set(
       lerp(-0.22, -0.05, sw),
-      lerp(-1.32, -0.12, sw),
+      lerp(-0.85, -0.12, sw),
       lerp(0.2, 0.04, sw)
     );
   }

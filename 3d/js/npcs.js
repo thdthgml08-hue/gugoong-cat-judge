@@ -195,6 +195,9 @@ export function makePerson(cfg = {}) {
 
     const shin = new THREE.Group();
     shin.position.y = -0.38;
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.076, 14, 10), pants);
+    knee.castShadow = true;
+    shin.add(knee);
     const sm = new THREE.Mesh(new THREE.CapsuleGeometry(0.076, 0.185, 6, 14), pants);
     sm.position.y = -0.17;
     sm.castShadow = true;
