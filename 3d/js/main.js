@@ -523,7 +523,8 @@ class Game {
     this.cat.swipe(kind);
     if (this.vm) this.vm.swipe(kind);
     this.prankFx = { t: 0, kind, npc };
-    if (kind === 'scare') { sfx.meow(); this.fpGrade.t = 0; }
+    this.fpGrade.t = 0; // 살짝 들썩 + 시선 올리기
+    if (kind === 'scare') sfx.meow();
     else sfx.swipe();
     setTimeout(() => sfx.startle(), kind === 'scare' ? 260 : 140);
 
@@ -569,8 +570,8 @@ class Game {
     this.shout.material.map = tex;
     this.shout.material.needsUpdate = true;
     const def = npc.def;
-    const headY = (def.seatY ? 1.62 : 1.92) * (def.scale ?? 1);
-    this.shoutBase.set(def.pos[0], headY + 0.18, def.pos[1]);
+    const headY = (def.seatY ? 1.4 : 1.66) * (def.scale ?? 1);
+    this.shoutBase.set(def.pos[0], headY + 0.2, def.pos[1]);
     this.shout.position.copy(this.shoutBase);
     this.shout.scale.set(1.0, 0.5, 1);
     this.shout.visible = true;
@@ -695,6 +696,7 @@ class Game {
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => {
       el.innerHTML = DEFAULT_HINT;
+      if (state.near) el.style.opacity = '0';
     }, ms);
   }
 
@@ -1086,7 +1088,7 @@ class Game {
       // 장난 성공 스티커
       const wantBadge = n.pranked && n.react.t < 0 ? 1 : 0;
       n.badge.material.opacity += (wantBadge - n.badge.material.opacity) * Math.min(1, dt * 4);
-      n.badge.position.y = (def.seatY ? 1.72 : 2.0) * (def.scale ?? 1) + 0.38 + Math.sin(t * 2 + n.phase) * 0.03;
+      n.badge.position.y = (def.seatY ? 1.62 : 1.9) * (def.scale ?? 1) + 0.3 + Math.sin(t * 2 + n.phase) * 0.03;
       const bs = clamp(dCam / 7, 0.5, 1.2);
       n.badge.scale.set(0.46 * bs, 0.46 * bs, 1);
     }
