@@ -439,10 +439,10 @@ export function buildWorld() {
   }, { repeat: false });
   const plateFace = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.2), new THREE.MeshBasicMaterial({ map: plateTex }));
   plateFace.position.z = 0.025;
-  plateFace.rotation.y = Math.PI;
   plate.add(plateFace);
   const plateFace2 = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.2), new THREE.MeshBasicMaterial({ map: plateTex }));
   plateFace2.position.z = -0.025;
+  plateFace2.rotation.y = Math.PI;
   plate.add(plateFace2);
   root.add(plate);
 
