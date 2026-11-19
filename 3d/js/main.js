@@ -555,6 +555,16 @@ class Game {
 
     this.updateHud();
     setTimeout(() => { state.acting = false; }, 1000);
+    // 화들짝 진정한 뒤, 성가셔하며 손을 뻗는다
+    setTimeout(() => {
+      if (npc.annoyT > 0 && !npc.scratched && !npc.annoyNoticed) {
+        npc.annoyNoticed = true;
+        this.showToast(
+          def.name + ' · "이 녀석 봐라, 일로 와!" 손이 내 쪽으로 내려온다. 💢 할퀴기 버튼이 열렸다.',
+          3600
+        );
+      }
+    }, 1900);
     if (state.pranks >= TOTAL) setTimeout(() => this.complete(), 2500);
   }
 

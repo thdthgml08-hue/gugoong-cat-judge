@@ -318,12 +318,12 @@ export class Viewmodel {
         const s2 = Math.sin(clamp((p - 0.3) / 0.46, 0, 1) * Math.PI);
         const L = this.paws[0];
         const R = this.paws[1];
-        L.g.position.y = L.base.y + s1 * 0.36;
-        L.g.position.x = L.base.x + s1 * 0.34;
+        L.g.position.y = L.base.y + s1 * 0.5;
+        L.g.position.x = L.base.x + s1 * 0.4;
         L.g.position.z = L.base.z + s1 * 0.26;
         L.g.rotation.z = -s1 * 0.75;
-        R.g.position.y = R.base.y + s2 * 0.36;
-        R.g.position.x = R.base.x - s2 * 0.34;
+        R.g.position.y = R.base.y + s2 * 0.5;
+        R.g.position.x = R.base.x - s2 * 0.4;
         R.g.position.z = R.base.z + s2 * 0.26;
         R.g.rotation.z = s2 * 0.75;
         this.inner.position.z = this.baseZ + Math.max(s1, s2) * 0.06;
