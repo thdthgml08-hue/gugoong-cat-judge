@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>구공이 90점 채점소 · 3D 미니 탐험판</title>
+<meta name="description" content="3D 구공이가 되어 집 안 거실에서 골목길까지 걸어 다니며 인간 여섯을 90점으로 채점하는 미니 탐험 게임. 기준은 고양이.">
+<meta name="theme-color" content="#f7e9d0">
+<meta property="og:title" content="구공이 90점 채점소 · 3D 미니 탐험판">
+<meta property="og:description" content="거실에서 골목까지. 3D 구공이가 직접 걸어 다니며 인간을 90점으로 채점한다.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="scene" aria-label="3D 거실과 골목길"></canvas>
+  <div class="tint"></div>
+
+  <header class="hud">
+    <div class="hud-row">
+      <div class="area-pill"><span class="live"></span><span id="area-name">집 안</span></div>
+      <div class="hud-right">
+        <button id="btn-sound" class="ico" aria-label="소리 켜기/끄기">🔊</button>
+        <button id="btn-help" class="ico" aria-label="조작법">?</button>
+      </div>
+    </div>
+    <div class="progress">
+      <div class="dots" id="dots"></div>
+      <span class="prog-label" id="prog-text">채점 0/6</span>
+    </div>
+  </header>
+
+  <div class="foot">
+    <div id="caption" class="caption" hidden>
+      <b id="cap-name"></b>
+      <p id="cap-line"></p>
+    </div>
+    <div id="hint" class="hint">화면 왼쪽을 <b>드래그</b>해 걷고, <b>바닥을 톡</b> 누르면 그쪽으로 간다.</div>
+    <button id="btn-grade" class="grade" hidden>
+      <span class="grade-badge">90</span>
+      <span class="grade-txt"><b>채점하기 · 90점!</b><small id="grade-target">인간</small></span>
+    </button>
+  </div>
+
+  <div id="stick" class="stick" hidden><div id="stick-knob"></div></div>
+
+  <section id="title" class="screen">
+    <div class="title-card">
+      <div class="mascot"><img src="../assets/gugoong.png" alt="90 팻말을 문 구공이"></div>
+      <p class="kicker">3D 미니 탐험판</p>
+      <h1>구공이 <span>90</span>점 채점소</h1>
+      <p class="lead">
+        집 안 거실에서 문을 지나 골목길까지.<br>
+        구공이가 되어 직접 걸어 다니며<br>
+        인간 여섯을 90점으로 채점한다.
+      </p>
+      <div class="btns">
+        <button id="btn-start" class="btn primary">탐험 시작</button>
+        <button id="btn-howto" class="btn ghost">조작법</button>
+      </div>
+      <p class="fine">가로·세로 모두 · 소리 켜면 더 좋다 · 기준은 고양이</p>
+    </div>
+  </section>
+
+  <section id="done" class="screen" hidden>
+    <div class="title-card done-card">
+      <p class="kicker">오늘의 채점</p>
+      <h1>6명 전원 <span>90</span>점</h1>
+      <div class="stats">
+        <div><b>6/6</b><small>채점</small></div>
+        <div><b>90</b><small>평균 점수</small></div>
+        <div><b id="stat-dist">0m</b><small>걸은 거리</small></div>
+      </div>
+      <p class="done-line">남은 60점은 인간들이 알아서 채워 올 것.<br>채점은 여기까지.</p>
+      <div class="btns">
+        <button id="btn-again" class="btn primary">다시 탐험</button>
+        <button id="btn-walk" class="btn ghost">계속 걷기</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="help" class="modal" hidden>
+    <div class="modal-card">
+      <h3>조작과 채점</h3>
+      <ul>
+        <li><b>걷기</b> — 화면 왼쪽을 드래그하면 조이스틱이 생긴다. 바닥을 톡 누르면 그쪽으로 걸어간다.</li>
+        <li><b>카메라</b> — 화면 오른쪽을 드래그하면 시점이 돈다. 걸으면 카메라가 뒤따라온다.</li>
+        <li><b>키보드</b> — WASD · 방향키로 걷고, <b>Space</b>로 가까운 인간을 채점한다.</li>
+        <li><b>채점</b> — 인간 근처에 가면 <b>채점하기</b> 버튼이 뜬다. 누르면 90점 팻말과 한마디가 나온다.</li>
+      </ul>
+      <p class="modal-note">거실에 2명, 골목길에 4명. 여섯 명을 모두 채점하면 오늘의 채점이 끝난다.<br>모두 90점인 이유는, 남은 10점이 인간 몫이라서다.</p>
+      <button id="btn-close-help" class="btn primary">알겠다</button>
+    </div>
+  </div>
+
+  <div id="fade" class="fade"></div>
+  <div id="boot" class="boot"><span>구공이를 불러오는 중…</span></div>
+</div>
+
+<script>
+  // 콘솔 에러 수집 (검증용 · 화면에는 나오지 않음)
+  window.__ggErrors = [];
+  window.addEventListener('error', function (e) {
+    window.__ggErrors.push('error: ' + (e.message || e.type));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    window.__ggErrors.push('rejection: ' + String(e.reason));
+  });
+  (function () {
+    const orig = console.error;
+    console.error = function () {
+      try { window.__ggErrors.push('console.error: ' + Array.from(arguments).join(' ')); } catch (err) {}
+      return orig.apply(console, arguments);
+    };
+  })();
+  setTimeout(function () {
+    if (!window.__ggReady) {
+      const b = document.getElementById('boot');
+      if (b) {
+        b.innerHTML = '<span>불러오지 못했다. 잠시 뒤 새로 고침해 줘.</span><button onclick="location.reload()">다시 불러오기</button>';
+      }
+    }
+  }, 12000);
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
