@@ -418,7 +418,7 @@ class Game {
 
     // 머리 위 90점 팝업
     const headY = (npc.def.seatY ? 1.35 : 1.85) * (npc.def.scale ?? 1);
-    this.popupBase.set(npc.def.pos[0], headY + 0.55, npc.def.pos[1]);
+    this.popupBase.set(npc.def.pos[0], headY + 0.32, npc.def.pos[1]);
     this.popup.position.copy(this.popupBase);
     this.popup.visible = true;
     this.popup.material.opacity = 0;
@@ -681,7 +681,7 @@ class Game {
         const ease = 1 - Math.pow(1 - pop, 3);
         const sc = 0.55 + 0.45 * ease + Math.sin(p * Math.PI) * 0.06;
         this.popup.scale.set(1.16 * sc, 0.58 * sc, 1);
-        this.popup.position.set(this.popupBase.x, this.popupBase.y + p * 0.62, this.popupBase.z);
+        this.popup.position.set(this.popupBase.x, this.popupBase.y + p * 0.42, this.popupBase.z);
         this.popup.material.opacity = p < 0.72 ? 1 : clamp(1 - (p - 0.72) / 0.28, 0, 1);
       }
     }
