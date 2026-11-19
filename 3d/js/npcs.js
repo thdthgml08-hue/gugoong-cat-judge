@@ -148,7 +148,7 @@ function buildHead(cfg) {
   if (cfg.glasses) {
     const gm = clay(cfg.glassesColor ?? 0x5a3720, 0.55);
     for (const s of [-1, 1]) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.066, 0.0068, 8, 22), gm);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.0055, 8, 22), gm);
       ring.position.set(s * 0.079, 0.032, 0.222);
       ring.rotation.y = s * 0.04;
       head.add(ring);
@@ -303,6 +303,11 @@ export function makePerson(cfg = {}) {
 
     const elbow = new THREE.Group();
     elbow.position.y = -0.235;
+    // 팔꿈치 관절 (구부려도 틈이 벌어지지 않게)
+    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.062, 14, 10), skinMat);
+    joint.scale.set(1, 0.95, 0.95);
+    joint.castShadow = true;
+    elbow.add(joint);
     const fm = new THREE.Mesh(new THREE.CapsuleGeometry(0.053, 0.125, 6, 14), skinMat);
     fm.position.y = -0.09;
     fm.castShadow = true;
@@ -473,7 +478,7 @@ export const NPC_DEFS = [
     seatY: 0.66,
     pose: 'sit',
     look: {
-      skin: 0xeec6a0, hair: 0x3b2b22, glasses: true, glassesColor: 0x5a3720, hairStyle: 'short',
+      skin: 0xeec6a0, hair: 0x3b2b22, glasses: true, glassesColor: 0x7a5a3c, hairStyle: 'short',
       outfit: { outer: 0x8fae94, inner: 0xf6f0e2, pants: 0x4a5870, shoes: 0x5f4632, accent: 0xd9b06a, belt: true },
     },
     hold: null,
@@ -654,7 +659,7 @@ export function buildNpcs(parent) {
       })
     );
     nameSprite.scale.set(0.95, 0.33, 1);
-    nameSprite.position.set(def.pos[0], (def.seatY ? 1.72 : 2.06) * scale, def.pos[1]);
+    nameSprite.position.set(def.pos[0], (def.seatY ? 1.84 : 2.12) * scale, def.pos[1]);
     nameSprite.renderOrder = 8;
     parent.add(nameSprite);
 
@@ -683,7 +688,7 @@ export function buildNpcs(parent) {
       })
     );
     badge.scale.set(0.46, 0.46, 1);
-    badge.position.set(def.pos[0], 1.55 + 0.4, def.pos[1]);
+    badge.position.set(def.pos[0], 2.0, def.pos[1]);
     badge.renderOrder = 9;
     parent.add(badge);
 
