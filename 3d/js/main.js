@@ -190,7 +190,7 @@ class Game {
     this.camera.aspect = w / h;
     const portrait = h > w;
     this.camera.fov = portrait ? 60 : 55;
-    this.cam.dist = portrait ? 5.1 : 4.3;
+    this.cam.dist = portrait ? 5.7 : 4.3;
     this.cam.pitch = portrait ? 0.4 : 0.36;
     this.camera.updateProjectionMatrix();
   }
