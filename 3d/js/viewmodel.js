@@ -103,7 +103,7 @@ export class Viewmodel {
       dot.position.set(s * 0.036, 0.05, -0.02);
       g.add(dot);
 
-      g.position.set(s * 0.72, -0.76, 0.02);
+      g.position.set(s * 0.74, -0.82, 0.02);
       g.rotation.y = s * 0.3;
       this.inner.add(g);
       this.paws.push({ g, side: s, base: g.position.clone() });
@@ -216,8 +216,8 @@ export class Viewmodel {
     this.disc.position.copy(discPos);
     this.disc.rotation.set(
       lerp(-0.22, -0.05, sw),
-      lerp(-0.85, -0.12, sw),
-      lerp(0.2, 0.04, sw)
+      lerp(-0.6, -0.12, sw),
+      lerp(0.14, 0.04, sw)
     );
   }
 
