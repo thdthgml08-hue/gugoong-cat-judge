@@ -104,6 +104,7 @@ export class Viewmodel {
       g.add(dot);
 
       g.position.set(s * 0.72, -0.76, 0.02);
+      g.rotation.y = s * 0.3;
       this.inner.add(g);
       this.paws.push({ g, side: s, base: g.position.clone() });
     }
@@ -177,19 +178,20 @@ export class Viewmodel {
     this.camera.updateProjectionMatrix();
 
     // 앞발은 화면 양 끝 모서리로
-    const px = clamp(0.74 * aspect, 0.28, 1.5);
+    const px = clamp(0.74 * aspect, 0.28, 0.62);
     this.paws.forEach((p) => {
       p.base.x = p.side * px;
       p.g.position.x = p.base.x;
     });
 
     // 팻말 자리 (x는 화면 반폭 비율)
+    const dx = clamp(-DISC_REST.x * aspect, 0.36, 0.62); // 화면이 넓어도 팻말이 너무 멀리 가지 않게
     this.mouth.copy(MOUTH_REST).setX(MOUTH_REST.x * aspect);
-    this.discRest.copy(DISC_REST).setX(DISC_REST.x * aspect);
+    this.discRest.copy(DISC_REST).setX(-dx);
     this.discUp.copy(DISC_UP).setX(DISC_UP.x * aspect);
     this.discCtrl.copy(this.discRest).lerp(this.discUp, 0.5);
     this.discCtrl.y -= 0.42;
-    this.discCtrl.x -= 0.06 * aspect;
+    this.discCtrl.x -= 0.06;
   }
 
   /* ─────────── 팻말 자세 ─────────── */
