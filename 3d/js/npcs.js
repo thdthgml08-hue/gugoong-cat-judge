@@ -72,8 +72,8 @@ function addHair(head, style, hairMat, cfg) {
     return;
   }
   // short · bun · long 공통: 윗머리 덮개
-  const base = cap(0.224, hairMat, 0.56);
-  base.position.y = 0.008;
+  const base = cap(0.224, hairMat, 0.5);
+  base.position.y = 0.022;
   head.add(base);
   head.add(ball(0.135, hairMat, 0, 0.055, -0.155, 1.05, 0.9, 0.5));
 
@@ -116,8 +116,8 @@ function buildHead(cfg) {
   for (const s of [-1, 1]) {
     const e = new THREE.Group();
     e.position.set(s * 0.079, 0.035, 0.0);
-    e.add(ball(0.047, eyeWhite, 0, 0, 0.172, 1, 1.12, 0.62, 16));
-    e.add(ball(0.021, iris, 0, -0.004, 0.204, 1, 1, 0.62, 12));
+    e.add(ball(0.052, eyeWhite, 0, 0, 0.172, 1, 1.12, 0.62, 16));
+    e.add(ball(0.024, iris, 0, -0.004, 0.206, 1, 1, 0.62, 12));
     const g = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 8), glint);
     g.position.set(s * -0.008, 0.012, 0.216);
     e.add(g);
@@ -148,7 +148,7 @@ function buildHead(cfg) {
   if (cfg.glasses) {
     const gm = clay(cfg.glassesColor ?? 0x5a3720, 0.55);
     for (const s of [-1, 1]) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.0055, 8, 22), gm);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.0045, 8, 22), gm);
       ring.position.set(s * 0.079, 0.032, 0.222);
       ring.rotation.y = s * 0.04;
       head.add(ring);
@@ -478,7 +478,7 @@ export const NPC_DEFS = [
     seatY: 0.66,
     pose: 'sit',
     look: {
-      skin: 0xeec6a0, hair: 0x3b2b22, glasses: true, glassesColor: 0x7a5a3c, hairStyle: 'short',
+      skin: 0xeec6a0, hair: 0x3b2b22, glasses: true, glassesColor: 0x8a6a4a, hairStyle: 'short',
       outfit: { outer: 0x8fae94, inner: 0xf6f0e2, pants: 0x4a5870, shoes: 0x5f4632, accent: 0xd9b06a, belt: true },
     },
     hold: null,
