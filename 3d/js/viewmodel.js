@@ -31,8 +31,8 @@ export class Viewmodel {
     this.scene.add(this.root);
 
     // 카메라에 붙은 조명 — 어디를 보든 같은 밝기
-    this.scene.add(new THREE.HemisphereLight(0xfff4e2, 0x9c7c5a, 2.1));
-    const key = new THREE.DirectionalLight(0xffeacb, 2.0);
+    this.scene.add(new THREE.HemisphereLight(0xfff4e2, 0x9c7c5a, 1.45));
+    const key = new THREE.DirectionalLight(0xffeacb, 1.35);
     key.position.set(-1.0, 1.6, 1.3);
     this.scene.add(key);
     const rim = new THREE.DirectionalLight(0xc6dcff, 0.45);
@@ -90,20 +90,20 @@ export class Viewmodel {
     for (const s of [-1, 1]) {
       const g = new THREE.Group();
       const paw = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 14), fur);
-      paw.scale.set(0.125, 0.082, 0.175);
+      paw.scale.set(0.105, 0.075, 0.15);
       g.add(paw);
       for (let i = 0; i < 3; i++) {
         const toe = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), furLight);
-        toe.scale.set(0.038, 0.033, 0.052);
-        toe.position.set((i - 1) * 0.052, 0.01, -0.165);
+        toe.scale.set(0.032, 0.028, 0.045);
+        toe.position.set((i - 1) * 0.044, 0.008, -0.142);
         g.add(toe);
       }
       const dot = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), spot);
-      dot.scale.set(0.05, 0.03, 0.058);
+      dot.scale.set(0.042, 0.026, 0.05);
       dot.position.set(s * 0.036, 0.05, -0.02);
       g.add(dot);
 
-      g.position.set(s * 0.74, -0.82, 0.02);
+      g.position.set(s * 0.74, -0.86, 0.02);
       g.rotation.y = s * 0.3;
       this.inner.add(g);
       this.paws.push({ g, side: s, base: g.position.clone() });
