@@ -97,7 +97,7 @@ export function makePerson(cfg = {}) {
     hairCap.visible = false;
   } else if (style === 'scarf') {
     const scarf = new THREE.Mesh(
-      new THREE.SphereGeometry(0.198, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.52),
+      new THREE.SphereGeometry(0.198, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.42),
       std(cfg.scarfColor ?? 0x8f7bb5, { roughness: 0.95 })
     );
     scarf.position.y = 0.006;

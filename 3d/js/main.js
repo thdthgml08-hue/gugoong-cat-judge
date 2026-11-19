@@ -440,7 +440,7 @@ class Game {
     ui.caption.hidden = false;
     requestAnimationFrame(() => ui.caption.classList.add('show'));
     clearTimeout(this.capTimer);
-    this.capTimer = setTimeout(() => this.hideCaption(), 9000);
+    this.capTimer = setTimeout(() => this.hideCaption(), 14000);
   }
 
   hideCaption() {

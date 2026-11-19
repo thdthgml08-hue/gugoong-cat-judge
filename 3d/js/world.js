@@ -600,9 +600,11 @@ export function buildWorld() {
   cart.add(cyl(0.02, 0.02, 0.9, meshMat, 0, 1.1, -0.38, 6));
   cart.add(box(0.5, 0.06, 0.06, std(0x4a4038), 0, 1.52, -0.38));
   for (const s of [-1, 1]) {
-    const wheel = cyl(0.14, 0.14, 0.07, std(0x3a2c22), s * 0.3, 0.14, 0.28, 12);
+    const wheel = cyl(0.15, 0.15, 0.08, std(0x3a2c22), s * 0.32, 0.18, 0.24, 12);
     wheel.rotation.z = Math.PI / 2;
     cart.add(wheel);
+    cart.add(box(0.06, 0.22, 0.06, std(0x6d5a48), s * 0.32, 0.32, 0.24));
+    cart.add(box(0.06, 0.3, 0.06, std(0x6d5a48), s * 0.30, 0.2, -0.3));
   }
   // 장바구니 속 장바구니
   cart.add(box(0.5, 0.28, 0.42, std(0x8f7bb5), 0, 0.95, 0.05));
@@ -650,13 +652,13 @@ export function buildWorld() {
   const treeAt = (x, z, s = 1) => {
     const t = new THREE.Group();
     t.position.set(x, 0, z);
-    t.add(cyl(0.18 * s, 0.24 * s, 2.1 * s, std(0x8a6a52), 0, 1.05 * s, 0, 8));
+    t.add(cyl(0.18 * s, 0.24 * s, 2.7 * s, std(0x8a6a52), 0, 1.35 * s, 0, 8));
     for (let i = 0; i < 3; i++) {
       const c = sphere(
-        (0.95 - i * 0.12) * s,
+        (0.92 - i * 0.12) * s,
         std(i % 2 ? 0x6f9270 : 0x5f8a68, { roughness: 1 }),
         (i - 1) * 0.55 * s,
-        (2.2 + i * 0.45) * s,
+        (3.0 + i * 0.42) * s,
         (i % 2) * 0.35 * s,
         12
       );
@@ -666,9 +668,9 @@ export function buildWorld() {
     root.add(t);
     addCollider(x, z, 0.7 * s, 0.7 * s);
   };
-  treeAt(-4.5, 6.6, 1.0);
-  treeAt(4.6, 17.4, 1.1);
-  treeAt(-4.5, 15.2, 0.9);
+  treeAt(-4.95, 4.6, 1.0);
+  treeAt(4.95, 17.6, 1.1);
+  treeAt(-4.95, 15.4, 0.9);
   treeAt(2.9, 21.4, 1.2);
 
   for (let i = 0; i < 8; i++) {
