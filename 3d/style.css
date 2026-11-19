@@ -1,4 +1,4 @@
-/* 구공이 90점 채점소 · 3D 미니 탐험판 */
+/* 구공이 장난 관찰소 · 3D 미니 탐험판 */
 @font-face {
   font-family: 'Galmuri11';
   src: url('../assets/fonts/Galmuri11.woff2') format('woff2');
@@ -288,39 +288,6 @@ html, body {
   box-shadow: 0 5px 0 rgba(90, 55, 32, 0.4), 0 10px 22px rgba(90, 55, 32, 0.18);
 }
 .act:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(90, 55, 32, 0.35); }
-
-.grade {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 20px 9px 10px;
-  border-radius: 20px;
-  border: 3px solid var(--brown);
-  background: linear-gradient(#fff8e6, #f7e2bd);
-  color: var(--brown-dark);
-  font-family: inherit;
-  box-shadow: 0 5px 0 rgba(90, 55, 32, 0.35), 0 10px 22px rgba(90, 55, 32, 0.18);
-  cursor: pointer;
-  touch-action: manipulation;
-  animation: popIn 0.28s cubic-bezier(0.2, 1.5, 0.5, 1);
-}
-.grade:active { transform: translateY(2px); box-shadow: 0 3px 0 rgba(90, 55, 32, 0.35); }
-.grade-badge {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: var(--paper);
-  border: 3px solid var(--brown);
-  display: grid;
-  place-items: center;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--brown);
-  box-shadow: inset 0 -3px 0 rgba(122, 79, 42, 0.16);
-}
-.grade-txt { display: flex; flex-direction: column; text-align: left; gap: 1px; }
-.grade-txt b { font-size: 14px; letter-spacing: 0.01em; }
-.grade-txt small { font-size: 11px; color: var(--ink-soft); }
 
 @keyframes popIn {
   from { opacity: 0; transform: translateY(14px) scale(0.92); }
