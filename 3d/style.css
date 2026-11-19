@@ -364,6 +364,15 @@ html, body {
 .fine { margin: 2px 0 0; font-size: 10.5px; color: #9a7d5f; }
 
 /* 완료 화면 */
+.done-screen { background: rgba(247, 233, 208, 0.82); backdrop-filter: blur(4px); }
+.done-card {
+  background: rgba(255, 250, 240, 0.96);
+  border: 3px solid var(--brown);
+  border-radius: 24px;
+  padding: 24px 22px 22px;
+  box-shadow: 0 8px 0 rgba(90, 55, 32, 0.24), 0 18px 40px rgba(90, 55, 32, 0.16);
+  width: min(420px, 100%);
+}
 .done-card .stats {
   display: flex;
   gap: 10px;
