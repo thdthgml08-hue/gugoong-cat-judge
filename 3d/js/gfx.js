@@ -87,6 +87,16 @@ export function canvasTexture(w, h, draw, opts = {}) {
     tex.repeat.set(repeatX, repeatY);
   }
   tex.needsUpdate = true;
+  // 브라우저가 화면 밖 캔버스의 메모리를 비우면 텍스처가 검게 변한다.
+  // ImageBitmap으로 한 번 구워 두면 그런 일이 없다.
+  if (typeof createImageBitmap === 'function') {
+    createImageBitmap(cv)
+      .then((bmp) => {
+        tex.image = bmp;
+        tex.needsUpdate = true;
+      })
+      .catch(() => {});
+  }
   return tex;
 }
 

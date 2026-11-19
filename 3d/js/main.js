@@ -10,6 +10,8 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
+const DEFAULT_HINT = '화면 왼쪽을 <b>드래그</b>해 걷고, <b>바닥을 톡</b> 누르면 그쪽으로 간다.';
+
 const ui = {
   canvas: $('scene'),
   boot: $('boot'),
@@ -507,7 +509,7 @@ class Game {
     el.style.opacity = '1';
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => {
-      el.style.opacity = '1';
+      el.innerHTML = DEFAULT_HINT;
     }, ms);
   }
 
