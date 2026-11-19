@@ -88,14 +88,17 @@ export function canvasTexture(w, h, draw, opts = {}) {
   }
   tex.needsUpdate = true;
   // 브라우저가 화면 밖 캔버스의 메모리를 비우면 텍스처가 검게 변한다.
-  // ImageBitmap으로 한 번 구워 두면 그런 일이 없다.
-  if (typeof createImageBitmap === 'function') {
-    createImageBitmap(cv)
-      .then((bmp) => {
-        tex.image = bmp;
-        tex.needsUpdate = true;
-      })
-      .catch(() => {});
+  // 이미지로 한 번 구워 두면 그런 일이 없고, 상하 반전도 정상으로 처리된다.
+  try {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      tex.image = img;
+      tex.needsUpdate = true;
+    };
+    img.src = cv.toDataURL('image/png');
+  } catch (e) {
+    /* 변환 실패 시 캔버스 그대로 */
   }
   return tex;
 }
