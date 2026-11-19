@@ -124,7 +124,7 @@ export function woodTexture() {
       c.fillStyle = 'rgba(80,50,28,0.28)';
       c.fillRect(((i % 2 ? 0.32 : 0.68) * w) | 0, y, 3, ph - 3);
     }
-  }, { repeatX: 5, repeatY: 5 });
+  }, { repeatX: 8, repeatY: 8 });
 }
 
 export function cobbleTexture() {

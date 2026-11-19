@@ -67,7 +67,7 @@ export function buildWorld() {
   }
 
   /* ─────────────── 집 벽 ─────────────── */
-  const WALL_H = 3.6;
+  const WALL_H = 5.0;
   const wall = (w, h, d, mat, x, y, z) => {
     const m = box(w, h, d, mat, x, y, z, { cast: true, receive: true });
     root.add(m);
@@ -83,7 +83,7 @@ export function buildWorld() {
   // 앞벽 (문 구멍: x -1.4 ~ 1.4)
   wall(6.6, WALL_H, 0.3, mWall, -4.7, WALL_H / 2, 0);
   wall(6.6, WALL_H, 0.3, mWall, 4.7, WALL_H / 2, 0);
-  wall(2.8, 1.0, 0.3, mWall, 0, 3.1, 0);
+  wall(2.8, 2.4, 0.3, mWall, 0, 3.8, 0);
 
   // 걸레받이 / 몰딩
   root.add(box(16, 0.14, 0.06, mTrim, 0, 0.07, -13.96, { cast: false }));
@@ -204,6 +204,34 @@ export function buildWorld() {
   }
   root.add(sofa);
   addCollider(-5.2, -12.75, 3.6, 1.55);
+
+  /* ─────────────── 찬장 · 콘솔 ─────────────── */
+  const counter = new THREE.Group();
+  counter.position.set(-7.35, 0, -3.3);
+  counter.add(box(1.0, 0.84, 2.8, std(0xd8c3a2, { roughness: 0.95 }), 0, 0.42, 0));
+  counter.add(box(1.12, 0.08, 2.95, mWood, 0, 0.88, 0));
+  for (let i = 0; i < 2; i++) {
+    counter.add(box(0.03, 0.62, 1.24, std(0xc9b291), 0.51, 0.44, -0.7 + i * 1.4));
+    counter.add(box(0.04, 0.05, 0.16, std(COL.gold), 0.54, 0.62, -0.7 + i * 1.4));
+  }
+  counter.add(cyl(0.14, 0.17, 0.22, std(0x8f9c86, { roughness: 0.6, metalness: 0.15 }), -0.1, 1.03, -0.75, 14));
+  counter.add(cyl(0.05, 0.05, 0.1, std(0x6f7a66), -0.1, 1.18, -0.75, 8));
+  counter.add(cyl(0.09, 0.09, 0.2, std(0xf0e0c4), 0.12, 1.02, 0.15, 12));
+  counter.add(cyl(0.09, 0.09, 0.14, std(0xc9704f), 0.12, 1.02, 0.45, 12));
+  counter.add(sphere(0.1, std(0x6f9270), 0.18, 1.05, 0.8, 10));
+  root.add(counter);
+  addCollider(-7.35, -3.3, 1.15, 3.0);
+
+  const console2 = new THREE.Group();
+  console2.position.set(6.85, 0, -2.5);
+  console2.add(box(0.7, 0.72, 1.5, mWoodDark, 0, 0.36, 0));
+  console2.add(box(0.8, 0.06, 1.6, mWood, 0, 0.75, 0));
+  console2.add(cyl(0.14, 0.1, 0.09, std(0x8f7bb5), 0, 0.82, -0.3, 14));
+  for (let i = 0; i < 3; i++) {
+    console2.add(cyl(0.008, 0.008, 0.09, std(COL.gold), -0.1 + i * 0.1, 0.78, 0.4, 5));
+  }
+  root.add(console2);
+  addCollider(6.85, -2.5, 0.85, 1.6);
 
   /* ─────────────── 러그 · 탁자 ─────────────── */
   const rug = new THREE.Mesh(

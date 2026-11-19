@@ -58,8 +58,8 @@ class Game {
     this.colliders = [];
     this.cam = {
       yaw: 0,
-      pitch: 0.34,
-      dist: 4.9,
+      pitch: 0.36,
+      dist: 4.3,
       cur: new THREE.Vector3(),
       look: new THREE.Vector3(),
       init: false,
@@ -114,7 +114,7 @@ class Game {
     this.colliders = this.world.colliders;
 
     this.cat = new Gugoong();
-    this.cat.root.position.set(0.7, 0, -5.0);
+    this.cat.root.position.set(0.9, 0, -6.6);
     this.cat.root.rotation.y = Math.PI;
     this.scene.add(this.cat.root);
 
@@ -459,12 +459,12 @@ class Game {
 
   reset(full = false) {
     const pos = this.cat.root.position;
-    pos.set(0.7, 0, -5.0);
+    pos.set(0.9, 0, -6.6);
     this.cat.root.rotation.y = Math.PI;
     this.cat.gradeT = -1;
     this.cat.root.position.y = 0;
     this.cam.yaw = 0;
-    this.cam.pitch = 0.34;
+    this.cam.pitch = 0.36;
     this.cam.init = false;
     this.input.target = null;
     this.input.jx = 0;
