@@ -19,7 +19,7 @@ const easeOut = (p) => 1 - Math.pow(1 - p, 3);
 const MOUTH_REST = V(0.06, -0.86, 0.0);
 const DISC_REST = V(-0.9, -0.8, -0.08);
 const DISC_UP = V(-0.05, 0.27, -0.04);
-const DISC_R = 0.34;
+const DISC_R = 0.26;
 
 export class Viewmodel {
   constructor() {
@@ -90,17 +90,17 @@ export class Viewmodel {
     for (const s of [-1, 1]) {
       const g = new THREE.Group();
       const paw = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 14), fur);
-      paw.scale.set(0.155, 0.1, 0.21);
+      paw.scale.set(0.125, 0.082, 0.175);
       g.add(paw);
       for (let i = 0; i < 3; i++) {
         const toe = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), furLight);
-        toe.scale.set(0.045, 0.04, 0.062);
-        toe.position.set((i - 1) * 0.064, 0.012, -0.198);
+        toe.scale.set(0.038, 0.033, 0.052);
+        toe.position.set((i - 1) * 0.052, 0.01, -0.165);
         g.add(toe);
       }
       const dot = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), spot);
-      dot.scale.set(0.062, 0.036, 0.07);
-      dot.position.set(s * 0.045, 0.062, -0.02);
+      dot.scale.set(0.05, 0.03, 0.058);
+      dot.position.set(s * 0.036, 0.05, -0.02);
       g.add(dot);
 
       g.position.set(s * 0.72, -0.76, 0.02);
