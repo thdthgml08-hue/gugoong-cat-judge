@@ -142,47 +142,45 @@ export function woodTexture() {
 
 export function cobbleTexture() {
   return canvasTexture(512, 512, (c, w, h) => {
-    c.fillStyle = '#8e8373';
+    c.fillStyle = '#c6b79d';
     c.fillRect(0, 0, w, h);
-    const cols = 7;
-    const rows = 8;
-    const cw = w / cols;
-    const ch = h / rows;
-    const tones = [
-      [176, 164, 145], [164, 152, 132], [186, 174, 154],
-      [156, 145, 128], [172, 158, 138], [150, 140, 124],
-    ];
-    for (let y = -1; y <= rows; y++) {
-      for (let x = -1; x <= cols; x++) {
-        const off = (Math.abs(y) % 2) * cw * 0.5 + (Math.random() - 0.5) * cw * 0.16;
-        const cx = x * cw + off + cw / 2;
-        const cy = y * ch + ch / 2 + (Math.random() - 0.5) * ch * 0.12;
-        const rw = cw * (0.36 + Math.random() * 0.1);
-        const rh = ch * (0.35 + Math.random() * 0.1);
-        const t = tones[(Math.random() * tones.length) | 0];
-        c.fillStyle = `rgb(${t[0]},${t[1]},${t[2]})`;
-        c.beginPath();
-        const pts = 8;
-        for (let k = 0; k < pts; k++) {
-          const a = (k / pts) * Math.PI * 2;
-          const rr = 0.88 + Math.random() * 0.2;
-          const px = cx + Math.cos(a) * rw * rr;
-          const py = cy + Math.sin(a) * rh * rr;
-          if (k === 0) c.moveTo(px, py);
-          else c.lineTo(px, py);
-        }
-        c.closePath();
-        c.fill();
-        c.strokeStyle = 'rgba(70,62,52,0.08)';
-        c.lineWidth = 2;
-        c.stroke();
-      }
+    // 큰 얼룩 (다져진 흙)
+    for (let i = 0; i < 46; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const r = 40 + Math.random() * 90;
+      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const dark = Math.random() > 0.5;
+      g.addColorStop(0, dark ? 'rgba(176,162,138,0.30)' : 'rgba(210,198,176,0.30)');
+      g.addColorStop(1, 'rgba(198,183,157,0)');
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI * 2);
+      c.fill();
     }
-    for (let i = 0; i < 900; i++) {
-      c.fillStyle = Math.random() > 0.5 ? 'rgba(255,248,232,0.05)' : 'rgba(60,52,44,0.05)';
-      c.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    // 잔자갈
+    for (let i = 0; i < 3200; i++) {
+      const v = Math.random();
+      c.fillStyle = v > 0.55 ? 'rgba(255,250,238,0.22)' : 'rgba(120,106,86,0.20)';
+      const r = 0.8 + Math.random() * 2.1;
+      c.beginPath();
+      c.arc(Math.random() * w, Math.random() * h, r, 0, Math.PI * 2);
+      c.fill();
     }
-  }, { repeatX: 2, repeatY: 9 });
+    // 드문드문 굵은 돌
+    for (let i = 0; i < 22; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      c.fillStyle = 'rgba(150,136,114,0.42)';
+      c.beginPath();
+      c.ellipse(x, y, 5 + Math.random() * 6, 4 + Math.random() * 5, Math.random() * 3, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = 'rgba(255,250,238,0.18)';
+      c.beginPath();
+      c.ellipse(x - 1, y - 1.5, 3 + Math.random() * 3, 2 + Math.random() * 2, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+  }, { repeatX: 3, repeatY: 14 });
 }
 
 export function asphaltTexture() {
