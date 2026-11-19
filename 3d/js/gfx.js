@@ -142,29 +142,30 @@ export function woodTexture() {
 
 export function cobbleTexture() {
   return canvasTexture(512, 512, (c, w, h) => {
-    c.fillStyle = '#948878';
+    c.fillStyle = '#8e8373';
     c.fillRect(0, 0, w, h);
-    const cols = 6;
-    const rows = 7;
+    const cols = 7;
+    const rows = 8;
     const cw = w / cols;
     const ch = h / rows;
+    const tones = [
+      [176, 164, 145], [164, 152, 132], [186, 174, 154],
+      [156, 145, 128], [172, 158, 138], [150, 140, 124],
+    ];
     for (let y = -1; y <= rows; y++) {
       for (let x = -1; x <= cols; x++) {
-        const off = (Math.abs(y) % 2) * cw * 0.5;
+        const off = (Math.abs(y) % 2) * cw * 0.5 + (Math.random() - 0.5) * cw * 0.16;
         const cx = x * cw + off + cw / 2;
-        const cy = y * ch + ch / 2;
-        const rw = cw * (0.43 + Math.random() * 0.05);
-        const rh = ch * (0.42 + Math.random() * 0.05);
-        const v = 0.93 + Math.random() * 0.12;
-        const r = Math.round(174 * v);
-        const g = Math.round(162 * v);
-        const b = Math.round(143 * v);
-        c.fillStyle = `rgb(${r},${g},${b})`;
+        const cy = y * ch + ch / 2 + (Math.random() - 0.5) * ch * 0.12;
+        const rw = cw * (0.36 + Math.random() * 0.1);
+        const rh = ch * (0.35 + Math.random() * 0.1);
+        const t = tones[(Math.random() * tones.length) | 0];
+        c.fillStyle = `rgb(${t[0]},${t[1]},${t[2]})`;
         c.beginPath();
-        const pts = 9;
+        const pts = 8;
         for (let k = 0; k < pts; k++) {
           const a = (k / pts) * Math.PI * 2;
-          const rr = 0.9 + Math.random() * 0.14;
+          const rr = 0.88 + Math.random() * 0.2;
           const px = cx + Math.cos(a) * rw * rr;
           const py = cy + Math.sin(a) * rh * rr;
           if (k === 0) c.moveTo(px, py);
@@ -172,13 +173,12 @@ export function cobbleTexture() {
         }
         c.closePath();
         c.fill();
-        c.strokeStyle = 'rgba(78,68,56,0.10)';
+        c.strokeStyle = 'rgba(70,62,52,0.08)';
         c.lineWidth = 2;
         c.stroke();
       }
     }
-    // 먼지 · 자갈
-    for (let i = 0; i < 700; i++) {
+    for (let i = 0; i < 900; i++) {
       c.fillStyle = Math.random() > 0.5 ? 'rgba(255,248,232,0.05)' : 'rgba(60,52,44,0.05)';
       c.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     }
