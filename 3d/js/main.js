@@ -570,10 +570,13 @@ class Game {
     this.shout.material.map = tex;
     this.shout.material.needsUpdate = true;
     const def = npc.def;
-    const headY = (def.seatY ? 1.4 : 1.66) * (def.scale ?? 1);
-    this.shoutBase.set(def.pos[0], headY + 0.2, def.pos[1]);
+    const headY = (def.seatY ? 1.3 : 1.52) * (def.scale ?? 1);
+    // 머리 옆으로 살짝 비켜 세운다 (얼굴을 가리지 않게)
+    const ox = Math.cos(this.cam.yaw) * 0.36;
+    const oz = -Math.sin(this.cam.yaw) * 0.36;
+    this.shoutBase.set(def.pos[0] + ox, headY + 0.26, def.pos[1] + oz);
     this.shout.position.copy(this.shoutBase);
-    this.shout.scale.set(1.0, 0.5, 1);
+    this.shout.scale.set(0.92, 0.46, 1);
     this.shout.visible = true;
     this.shout.material.opacity = 0;
     this.shoutT = 0;
@@ -846,7 +849,7 @@ class Game {
         const ease = 1 - Math.pow(1 - pop, 3);
         const sc = 0.6 + 0.4 * ease + Math.sin(p * Math.PI) * 0.04;
         const wob = Math.sin(p * 30) * 0.02 * Math.max(0, 1 - p * 3);
-        this.shout.scale.set(1.0 * sc, 0.5 * sc, 1);
+        this.shout.scale.set(0.92 * sc, 0.46 * sc, 1);
         this.shout.position.set(this.shoutBase.x, this.shoutBase.y + p * 0.16 + wob, this.shoutBase.z);
         this.shout.material.opacity = p < 0.8 ? 1 : clamp(1 - (p - 0.8) / 0.2, 0, 1);
       }
@@ -924,7 +927,7 @@ class Game {
       this.fpGrade.t += dt;
       const p = clamp(this.fpGrade.t / 1.2, 0, 1);
       lift += Math.sin(clamp(p / 0.5, 0, 1) * Math.PI) * 0.09;
-      this.fpLift = Math.sin(Math.min(1, p / 0.7) * Math.PI) * 0.16;
+      this.fpLift = Math.sin(Math.min(1, p / 0.7) * Math.PI) * 0.2;
       if (this.fpGrade.t > 1.4) this.fpGrade.t = -1;
     } else {
       this.fpLift += (0 - this.fpLift) * Math.min(1, dt * 6);
