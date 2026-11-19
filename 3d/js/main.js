@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { buildWorld } from './world.js';
 import { Gugoong } from './cat.js';
-import { buildNpcs } from './npcs.js';
+import { buildNpcs, setFaceSurprise } from './npcs.js';
 import { Sfx } from './audio.js';
 import { shoutTexture } from './gfx.js';
 import { Viewmodel } from './viewmodel.js';
@@ -33,6 +33,9 @@ const ui = {
   prankKind: $('prank-kind'),
   btnObserve: $('btn-observe'),
   btnPrank: $('btn-prank'),
+  btnScratch: $('btn-scratch'),
+  scratchHint: $('scratch-hint'),
+  claw: $('claw'),
   progText: $('prog-text'),
   dots: $('dots'),
   areaName: $('area-name'),
@@ -103,6 +106,8 @@ class Game {
     this.stepTimer = 0;
     this.shoutT = -1;
     this.capTimer = null;
+    this.clawTimer = null;
+    this._scratchState = '';
     this.tapRing = null;
     this.tapRingT = -1;
     this.stuckT = 0;
@@ -328,6 +333,7 @@ class Game {
       }
       this.input.keys.add(e.code);
       if ((e.code === 'Space' || e.code === 'KeyE') && !e.repeat) this.prank();
+      if (e.code === 'KeyF' && !e.repeat) this.scratch();
       if (e.code === 'KeyQ' && !e.repeat) this.observe();
       if (e.code === 'KeyV' && !e.repeat) this.setView(this.cam.mode === 'first' ? 'third' : 'first');
       if (e.code === 'KeyR') this.reset();
@@ -351,6 +357,7 @@ class Game {
     });
     ui.btnObserve.addEventListener('click', () => this.observe());
     ui.btnPrank.addEventListener('click', () => this.prank());
+    if (ui.btnScratch) ui.btnScratch.addEventListener('click', () => this.scratch());
 
     if (ui.viewseg) {
       ui.viewseg.addEventListener('click', (e) => {
@@ -518,6 +525,10 @@ class Game {
     }
     npc.react = { t: 0, dur: 1.75, kind };
     npc.eyeWide = 0;
+    npc.annoyT = 10;        // 잠시 성가셔하는 상태 — 할퀴기 버튼이 열린다
+    npc.dwell = 0;
+    npc.scratched = false;
+    npc.scratchCool = 0;
 
     // 구공이 쪽 동작
     this.cat.swipe(kind);
@@ -545,6 +556,89 @@ class Game {
     this.updateHud();
     setTimeout(() => { state.acting = false; }, 1000);
     if (state.pranks >= TOTAL) setTimeout(() => this.complete(), 2500);
+  }
+
+  /* ───────── 할퀴기 (성가셔하는 사람에게 반격) ───────── */
+  scratch() {
+    const near = state.near;
+    if (!near || !state.started || state.acting) return;
+    const npc = near.npc;
+    const def = npc.def;
+    const pos = this.cat.root.position;
+
+    if (!(npc.annoyT > 0)) {
+      sfx.tap();
+      this.showToast(
+        npc.scratchCool > 0
+          ? '방금 할퀴었다. 손이 오므라들었다. 다시 화나게 하려면 먼저 장난을.'
+          : '아직 화나지 않았다. 먼저 장난을 쳐서 사람을 불러 보자.',
+        2400
+      );
+      return;
+    }
+
+    state.acting = true;
+    npc.annoyT = 0;
+    npc.annoyMix = 0;
+    npc.scratched = true;
+    npc.scratchCool = 9;
+    npc.scratches = (npc.scratches ?? 0) + 1;
+    npc.react = { t: 0, dur: 2.3, kind: 'scratch' };
+
+    // 앞발 샥샥 + 긁힌 자국 + 소리
+    this.cat.swipe('scratch');
+    if (this.vm) this.vm.scratch();
+    this.flashClaw();
+    sfx.scratch();
+    this.prankFx = { t: 0, kind: 'scrape', npc };
+
+    // 사람이 뒤로 물러난다
+    let dx = def.pos[0] - pos.x;
+    let dz = def.pos[1] - pos.z;
+    const len = Math.hypot(dx, dz) || 1;
+    dx /= len;
+    dz /= len;
+    npc.knockV = new THREE.Vector2(dx * 2.6, dz * 2.6);
+    npc.knockT = 0.55;
+
+    const line = def.scratch || { cry: '아얏!', line: '"아얏!" 사람이 손을 감싸고 뒤로 물러났다.' };
+    this.showShout(npc, line.cry);
+    this.showCaption(def.name + ' · 할퀴기', line.line, 'prank');
+    setTimeout(() => sfx.startle(), 170);
+
+    if (this.cam.mode === 'first') {
+      this.fpFaceYaw = Math.atan2(-(def.pos[0] - pos.x), -(def.pos[1] - pos.z));
+      this.fpFaceUntil = performance.now() + 700;
+    } else {
+      this.faceYaw = Math.atan2(def.pos[0] - pos.x, def.pos[1] - pos.z);
+      this.faceUntil = performance.now() + 750;
+    }
+
+    this.updateScratchButton(true);
+    setTimeout(() => { state.acting = false; }, 900);
+  }
+
+  /* 긁힌 자국 이펙트 */
+  flashClaw() {
+    const el = ui.claw;
+    if (!el) return;
+    el.classList.remove('on');
+    void el.offsetWidth;
+    el.classList.add('on');
+    clearTimeout(this.clawTimer);
+    this.clawTimer = setTimeout(() => el.classList.remove('on'), 640);
+  }
+
+  /* 할퀴기 버튼 열림/닫힘 */
+  updateScratchButton(force = false) {
+    if (!ui.btnScratch) return;
+    const npc = state.near && state.near.npc;
+    const can = !!npc && npc.annoyT > 0;
+    const key = (can ? npc.def.id : '-') + (can ? '1' : '0');
+    if (!force && key === this._scratchState) return;
+    this._scratchState = key;
+    ui.btnScratch.disabled = !can;
+    ui.scratchHint.textContent = can ? '지금이다!' : '화나면 열린다';
   }
 
   knockItem(npc) {
@@ -652,12 +746,23 @@ class Game {
     ui.actions.hidden = true;
     ui.hint.style.opacity = '1';
     ui.done.hidden = true;
+    if (ui.claw) ui.claw.classList.remove('on');
     this.shout.visible = false;
     this.shoutT = -1;
 
     for (const n of this.npcs) {
       n.pranked = false;
       n.pranks = 0;
+      n.scratches = 0;
+      n.annoyT = 0;
+      n.annoyMix = 0;
+      n.scratchCool = 0;
+      n.scratched = false;
+      n.dwell = 0;
+      n.annoyNoticed = false;
+      n.knockV = null;
+      n.knockT = 0;
+      if (n.knock) { n.knock.x = 0; n.knock.z = 0; }
       n.react = { t: -1, dur: 1.75, kind: '' };
       n.badge.material.opacity = 0;
       n.ring.visible = true;
@@ -689,7 +794,7 @@ class Game {
     n.group.position.y = b.baseY;
     n.group.scale.y = b.scaleY;
     n.eyeWide = 0;
-    n.person.eyes.forEach((e) => e.scale.setScalar(1));
+    setFaceSurprise(n.person, 0);
   }
 
   showToast(text, ms = 3000) {
@@ -820,6 +925,7 @@ class Game {
 
     /* 가까운 사람 · 사람들 반응 */
     this.updateNear();
+    this.updateScratchButton();
     this.updateNpcs(dt, t);
     this.updatePushItems(dt);
 
@@ -1025,6 +1131,25 @@ class Game {
       const dz = pos.z - def.pos[1];
       const d = Math.hypot(dx, dz);
 
+      // 성가심 · 할퀴기 쿨타임 타이머
+      if (n.annoyT > 0) n.annoyT = Math.max(0, n.annoyT - dt);
+      if (n.scratchCool > 0) n.scratchCool = Math.max(0, n.scratchCool - dt);
+
+      // 놀린 사람 곁에서 버티면 다시 성가셔한다
+      if (n.pranked && !n.scratched && n.annoyT <= 0 && n.scratchCool <= 0 && d < 1.8) {
+        n.dwell = (n.dwell ?? 0) + dt;
+        if (n.dwell > 1.6) {
+          n.dwell = 0;
+          n.annoyT = 7;
+          if (!n.annoyNoticed) {
+            n.annoyNoticed = true;
+            this.showToast(def.name + ' · "이 녀석 봐라, 일로 와!" 손이 내 쪽으로 내려온다. 💢 할퀴기 버튼이 열렸다.', 3600);
+          }
+        }
+      } else if (d >= 1.8) {
+        n.dwell = 0;
+      }
+
       // 가까우면 고개를 돌린다
       const rel = clamp(wrapAngle(Math.atan2(dx, dz) - n.baseRotY), -0.75, 0.75);
       const lookT = d < 5.5 ? rel : 0;
@@ -1060,7 +1185,7 @@ class Game {
         P.upper.rotation.x = n.basePose.upperX - crouch * 0.2 + flail * 0.12;
         P.head.rotation.x = n.basePose.headX - flail * 0.28;
         g.scale.y = n.basePose.scaleY * (1 - crouch * 0.075);
-        P.eyes.forEach((e) => e.scale.setScalar(1 + wide * 0.3));
+        setFaceSurprise(P, wide);
 
         if (r.t >= r.dur) {
           r.t = -1;
@@ -1068,7 +1193,41 @@ class Game {
         }
       } else {
         g.rotation.y = this.lerpAngle(g.rotation.y, n.baseRotY, Math.min(1, dt * 2.5));
+
+        // 성가셔하는 자세 — 몸을 숙이고 한 손을 뻗어 쫓으려 한다
+        const want = n.annoyT > 0 && d < 2.6 ? 1 : 0;
+        n.annoyMix = (n.annoyMix ?? 0) + (want - (n.annoyMix ?? 0)) * Math.min(1, dt * 4);
+        const am = n.annoyMix;
+        const wave = Math.sin(t * 8.5) * 0.16 * am;
+        P.arms.forEach((a, i) => {
+          const b = n.basePose.arms[i];
+          const k = i === 0 ? 0.55 : 1;
+          a.shoulder.rotation.x = b.sx - am * (i === 0 ? 0.5 : 1.05) * k + (i === 0 ? 0 : wave);
+          a.shoulder.rotation.z = b.sz + am * 0.22 * k * a.side;
+          a.elbow.rotation.x = b.ex - am * 0.55 * k;
+        });
+        P.upper.rotation.x = n.basePose.upperX + am * 0.22;
+        P.head.rotation.x = n.basePose.headX + am * 0.16;
       }
+
+      // 할퀴고 물러나기
+      if (n.knockT > 0 && n.knockV) {
+        n.knockT -= dt;
+        n.knock.x += n.knockV.x * dt;
+        n.knock.z += n.knockV.y * dt;
+        n.knockV.multiplyScalar(Math.exp(-5 * dt));
+        if (n.knockT <= 0) n.knockV = null;
+      } else if (n.knock && (Math.abs(n.knock.x) > 0.002 || Math.abs(n.knock.z) > 0.002)) {
+        const k = Math.exp(-1.2 * dt);
+        n.knock.x *= k;
+        n.knock.z *= k;
+      }
+      const kx = n.knock ? n.knock.x : 0;
+      const kz = n.knock ? n.knock.z : 0;
+      g.position.x = def.pos[0] + kx;
+      g.position.z = def.pos[1] + kz;
+      n.nameSprite.position.x = def.pos[0] + kx;
+      n.nameSprite.position.z = def.pos[1] + kz;
 
       g.position.y = n.basePose.baseY + bob + hop;
 

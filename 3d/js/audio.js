@@ -149,6 +149,13 @@ export class Sfx {
     osc.stop(t0 + 0.5);
   }
 
+  /** 할퀴기 — 샥, 샥 두 번 긁는 소리 */
+  scratch() {
+    this._noise({ freq: 3400, freqEnd: 1500, dur: 0.085, gain: 0.055, q: 1.3 });
+    this._noise({ freq: 2800, freqEnd: 900, dur: 0.10, gain: 0.05, q: 1.1, delay: 0.11 });
+    this._tone({ freq: 1180, freqEnd: 420, dur: 0.13, type: 'triangle', gain: 0.05, delay: 0.11 });
+  }
+
   /** 사람이 화들짝 — 짧게 튀는 소리 */
   startle() {
     this._tone({ freq: 640, freqEnd: 1180, dur: 0.11, type: 'triangle', gain: 0.09 });

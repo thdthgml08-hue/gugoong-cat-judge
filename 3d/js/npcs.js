@@ -43,26 +43,26 @@ function addHair(head, style, hairMat, cfg) {
     return;
   }
   if (style === 'cap') {
-    head.add(ball(0.10, hairMat, -0.175, 0.0, -0.06, 0.7, 0.8, 0.9));
-    head.add(ball(0.10, hairMat, 0.175, 0.0, -0.06, 0.7, 0.8, 0.9));
+    head.add(ball(0.095, hairMat, -0.18, 0.01, -0.06, 0.7, 0.8, 0.9));
+    head.add(ball(0.095, hairMat, 0.18, 0.01, -0.06, 0.7, 0.8, 0.9));
     const capMat = clay(cfg.capColor ?? 0x35506b, 0.92);
-    const dome = cap(0.228, capMat, 0.52);
-    dome.position.y = 0.012;
+    const dome = cap(0.228, capMat, 0.365);
+    dome.position.y = 0.022;
     head.add(dome);
-    const brim = ball(0.14, capMat, 0, 0.055, 0.245, 1, 0.16, 0.85);
-    brim.rotation.x = -0.12;
+    const brim = ball(0.145, capMat, 0, 0.118, 0.16, 1, 0.13, 0.78);
+    brim.rotation.x = -0.30;
     head.add(brim);
     return;
   }
   if (style === 'cloud') {
     // 풍성한 구름 머리
     const puffs = [
-      [0, 0.19, 0.03, 0.125], [-0.14, 0.15, 0.06, 0.112], [0.14, 0.15, 0.06, 0.112],
-      [-0.205, 0.03, -0.01, 0.105], [0.205, 0.03, -0.01, 0.105],
-      [-0.16, -0.08, -0.09, 0.10], [0.16, -0.08, -0.09, 0.10],
-      [0, -0.03, -0.165, 0.115], [0, 0.245, -0.07, 0.10],
-      [-0.075, 0.115, 0.155, 0.075], [0.075, 0.115, 0.155, 0.075],
-      [-0.24, 0.10, -0.10, 0.085], [0.24, 0.10, -0.10, 0.085],
+      [0, 0.215, -0.03, 0.125], [-0.145, 0.195, -0.005, 0.112], [0.145, 0.195, -0.005, 0.112],
+      [-0.208, 0.115, -0.045, 0.105], [0.208, 0.115, -0.045, 0.105],
+      [-0.185, 0.005, -0.085, 0.10], [0.185, 0.005, -0.085, 0.10],
+      [0, -0.03, -0.165, 0.115], [0, 0.255, -0.10, 0.10],
+      [-0.085, 0.185, 0.115, 0.072], [0.085, 0.185, 0.115, 0.072],
+      [-0.245, 0.155, -0.115, 0.085], [0.245, 0.155, -0.115, 0.085],
     ];
     for (const [x, y, z, r] of puffs) {
       const p = ball(r, hairMat, x, y, z, 1, 0.95, 1, 16);
@@ -71,8 +71,8 @@ function addHair(head, style, hairMat, cfg) {
     }
     return;
   }
-  // short · bun · long 공통: 윗머리 덮개
-  const base = cap(0.224, hairMat, 0.5);
+  // short · bun · long 공통: 윗머리 덮개 (이마는 눈썹 위까지만)
+  const base = cap(0.224, hairMat, 0.375);
   base.position.y = 0.022;
   head.add(base);
   head.add(ball(0.135, hairMat, 0, 0.055, -0.155, 1.05, 0.9, 0.5));
@@ -84,87 +84,205 @@ function addHair(head, style, hairMat, cfg) {
     head.add(ball(0.085, hairMat, 0.195, -0.13, -0.02, 0.62, 1.75, 0.85));
     head.add(ball(0.14, hairMat, 0, 0.02, -0.19, 1.0, 1.35, 0.62));
   } else {
-    // 앞머리 잔머리
-    head.add(ball(0.062, hairMat, -0.088, 0.175, 0.155, 1.15, 0.62, 0.75));
-    head.add(ball(0.055, hairMat, 0.062, 0.185, 0.145, 1.0, 0.55, 0.7));
+    // 앞머리 끝 — 이마에 살짝만 내려오는 납작한 잔머리
+    head.add(ball(0.072, hairMat, -0.083, 0.152, 0.128, 1.25, 0.42, 0.62));
+    head.add(ball(0.066, hairMat, 0.075, 0.160, 0.120, 1.1, 0.38, 0.6));
   }
 }
 
-/* ── 머리 (얼굴 · 안경) ── */
+/* ── 얼굴 곡면 도우미 ──
+   얼굴은 여러 덩어리(머리·아래턱)로 되어 있어서, 표면에 붙는 눈·볼터치·입은
+   각 (x,y)에서 가장 앞쪽 z를 구해 그 위에 얇게 얹는다. */
+function faceFrontZ(parts, x, y) {
+  let z = -1;
+  for (const p of parts) {
+    const k = 1 - ((x - p.cx) / p.rx) ** 2 - ((y - p.cy) / p.ry) ** 2;
+    if (k > 0) {
+      const zz = p.cz + p.rz * Math.sqrt(k);
+      if (zz > z) z = zz;
+    }
+  }
+  return z;
+}
+
+/* 얼굴 표면에 아주 얇게 밀착되는 둥근 판 (볼터치) */
+function facePatch(parts, cx, cy, rad, material, squash = 1, lift = 0.0014, seg = 30) {
+  const z0 = faceFrontZ(parts, cx, cy) + lift;
+  const pos = [0, 0, 0];
+  const idx = [];
+  for (let i = 0; i < seg; i++) {
+    const a = (i / seg) * Math.PI * 2;
+    const x = Math.cos(a) * rad;
+    const y = Math.sin(a) * rad * squash;
+    pos.push(x, y, faceFrontZ(parts, cx + x, cy + y) + lift - z0);
+  }
+  for (let i = 0; i < seg; i++) idx.push(0, 1 + i, 1 + ((i + 1) % seg));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.set(cx, cy, z0);
+  mesh.userData.flat = true;
+  return mesh;
+}
+
+/* 얼굴 표면을 따라 흐르는 가는 선 (눈썹 · 입) */
+function faceLine(parts, pts2d, radius, material, lift = 0.0016) {
+  const pts = pts2d.map(([x, y]) => new THREE.Vector3(x, y, faceFrontZ(parts, x, y) + lift));
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 22, radius, 6, false), material);
+  mesh.userData.flat = true;
+  return mesh;
+}
+
+/* ── 머리 (얼굴 · 안경) ──
+   흰자·동공이 튀어나온 인형 눈 대신, 얼굴에 살짝 박힌 작고 순한 점눈.
+   볼터치는 곡면에 밀착된 얇은 홍조, 입은 얇은 곡선. */
 function buildHead(cfg) {
   const head = new THREE.Group();
-  const skin = clay(cfg.skin ?? SKIN, 0.9);
-  const blush = clay(cfg.blush ?? 0xe9a993, 1);
+  const skinCol = cfg.skin ?? SKIN;
+  const skin = clay(skinCol, 0.9);
   const hairMat = clay(cfg.hair ?? 0x4a3328, 0.95);
-  const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xfffdf6, roughness: 0.38, metalness: 0 });
-  const iris = clay(cfg.eye ?? 0x3c2f28, 0.4);
-  const glint = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const blushMat = clay(cfg.blush ?? 0xe9a993, 1);
+  const eyeMat = clay(cfg.eye ?? 0x33281f, 0.35);
+  const glintMat = new THREE.MeshBasicMaterial({ color: 0xfffdf7 });
+  const browMat = clay(
+    new THREE.Color(cfg.hair ?? 0x4a3328).lerp(new THREE.Color(skinCol), 0.45).getHex(),
+    0.92
+  );
+  const mouthMat = clay(cfg.mouth ?? 0xa85f52, 0.62);
 
-  head.add(ball(0.216, skin, 0, 0, 0, 1, 1.04, 0.97, 26));
-  head.add(ball(0.148, skin, 0, -0.095, 0.06, 1.12, 0.85, 0.95, 20));
-  head.add(ball(0.078, skin, -0.115, -0.05, 0.128, 1, 0.92, 0.82));
-  head.add(ball(0.078, skin, 0.115, -0.05, 0.128, 1, 0.92, 0.82));
-  head.add(ball(0.052, skin, -0.215, -0.015, -0.01, 0.52, 1, 0.85, 14));
-  head.add(ball(0.052, skin, 0.215, -0.015, -0.01, 0.52, 1, 0.85, 14));
+  // 머리 · 아래턱 덩어리 (얼굴 곡면 계산에도 함께 쓴다)
+  const parts = [
+    { cx: 0, cy: 0, cz: 0, rx: 0.216, ry: 0.22464, rz: 0.20952 },
+  ];
+  head.add(ball(0.216, skin, 0, 0, 0, 1, 1.04, 0.97, 30));
+  // 귀
+  head.add(ball(0.045, skin, -0.209, -0.015, -0.012, 0.5, 1, 0.82, 14));
+  head.add(ball(0.045, skin, 0.209, -0.015, -0.012, 0.5, 1, 0.82, 14));
 
-  // 볼터치
-  head.add(ball(0.04, blush, -0.118, -0.058, 0.193, 1, 0.7, 0.12, 14));
-  head.add(ball(0.04, blush, 0.118, -0.058, 0.193, 1, 0.7, 0.12, 14));
+  // 볼터치 — 튀어나온 볼 대신 얼굴에 얇게 밀착된 납작한 홍조
+  for (const s of [-1, 1]) {
+    head.add(facePatch(parts, s * 0.112, -0.062, 0.030, blushMat, 0.70));
+  }
 
-  // 눈
+  // 눈 — 살짝만 볼록한 작은 점눈 (+ 아주 작은 반짝임)
   const eyes = [];
+  const eyeZ = faceFrontZ(parts, 0.078, 0.038);
   for (const s of [-1, 1]) {
     const e = new THREE.Group();
-    e.position.set(s * 0.079, 0.035, 0.0);
-    e.add(ball(0.052, eyeWhite, 0, 0, 0.172, 1, 1.12, 0.62, 16));
-    e.add(ball(0.024, iris, 0, -0.004, 0.206, 1, 1, 0.62, 12));
-    const g = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 8), glint);
-    g.position.set(s * -0.008, 0.012, 0.216);
+    e.position.set(s * 0.078, 0.038, eyeZ - 0.0065);
+    e.userData.y0 = e.position.y;
+    e.add(ball(0.026, eyeMat, 0, 0, 0, 1, 1.15, 0.34, 18));
+    const g = new THREE.Mesh(new THREE.SphereGeometry(0.0062, 10, 8), glintMat);
+    g.position.set(s * -0.0068, 0.0085, 0.0066);
+    g.scale.set(1, 1, 0.6);
+    g.userData.flat = true;
     e.add(g);
     head.add(e);
     eyes.push(e);
   }
 
-  // 눈썹
+  // 눈썹 — 얼굴에 붙은 가는 선 (놀랄 때 올라간다)
+  const brows = [];
   for (const s of [-1, 1]) {
-    const b = ball(0.05, hairMat, s * 0.079, 0.108, 0.176, 1.05, 0.22, 0.35, 12);
-    b.rotation.z = s * -0.16;
-    head.add(b);
+    const g = new THREE.Group();
+    const pts = [];
+    for (let i = 0; i <= 4; i++) {
+      const t = i / 4;
+      const x = s * (0.038 + 0.070 * t);
+      const y = 0.084 + 0.011 * Math.sin(Math.PI * t);
+      pts.push([x, y]);
+    }
+    g.add(faceLine(parts, pts, 0.0042, browMat, 0.0018));
+    head.add(g);
+    brows.push(g);
   }
 
-  // 동그란 코
-  head.add(ball(0.043, skin, 0, -0.018, 0.196, 1, 0.95, 1.08, 16));
+  // 코 — 살짝만 볼록한 작은 코
+  head.add(ball(0.026, skin, 0, -0.030, faceFrontZ(parts, 0, -0.03) - 0.019, 1, 0.94, 1.05, 16));
 
-  // 입 (스마일)
-  const mouth = new THREE.Mesh(
-    new THREE.TorusGeometry(0.036, 0.0075, 6, 14, Math.PI),
-    clay(0x9c5a4a, 0.7)
-  );
-  mouth.position.set(0, -0.082, 0.203);
-  mouth.rotation.z = Math.PI;
+  // 입 — 얇고 부드러운 곡선
+  const smilePts = [];
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6;
+    const x = (t - 0.5) * 0.10;
+    const y = -0.098 + 0.024 * Math.pow(Math.abs(t - 0.5) * 2, 1.8);
+    smilePts.push([x, y]);
+  }
+  const mouth = faceLine(parts, smilePts, 0.0052, mouthMat);
   head.add(mouth);
 
-  // 안경
+  // 놀랐을 때의 동그란 "o" 입
+  const mouthO = new THREE.Group();
+  mouthO.position.set(0, -0.086, faceFrontZ(parts, 0, -0.086) - 0.0035);
+  mouthO.add(ball(0.0145, clay(0x8f4a42, 0.7), 0, 0, 0.0035, 0.95, 1.2, 0.4, 14));
+  mouthO.visible = false;
+  head.add(mouthO);
+
+  // 놀랐을 때 머리 옆에 뜨는 땀방울
+  const sweatMat = new THREE.MeshStandardMaterial({
+    color: 0x9fd0e8,
+    roughness: 0.28,
+    metalness: 0,
+    transparent: true,
+    opacity: 0,
+  });
+  const sweat = new THREE.Group();
+  const drop = new THREE.Mesh(new THREE.SphereGeometry(0.019, 12, 10), sweatMat);
+  drop.scale.set(0.82, 1.18, 0.7);
+  drop.userData.flat = true;
+  sweat.add(drop);
+  sweat.position.set(0.188, 0.152, 0.015);
+  sweat.userData.y0 = 0.152;
+  sweat.visible = false;
+  head.add(sweat);
+
+  // 안경 — 눈 위에 가까이, 얼굴을 따라 살짝 기울여
   if (cfg.glasses) {
     const gm = clay(cfg.glassesColor ?? 0x5a3720, 0.55);
     for (const s of [-1, 1]) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.0045, 8, 22), gm);
-      ring.position.set(s * 0.079, 0.032, 0.222);
-      ring.rotation.y = s * 0.04;
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.056, 0.0042, 8, 24), gm);
+      ring.position.set(s * 0.077, 0.034, 0.201);
+      ring.rotation.y = s * 0.38;
       head.add(ring);
-      const temple = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.20, 6), gm);
-      temple.position.set(s * 0.158, 0.042, 0.10);
-      temple.rotation.set(Math.PI / 2, 0, s * 0.42);
+      const temple = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.19, 6), gm);
+      temple.position.set(s * 0.16, 0.045, 0.095);
+      temple.rotation.set(Math.PI / 2, 0, s * 0.44);
       head.add(temple);
     }
-    const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.035, 6), gm);
+    const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.03, 6), gm);
     bridge.rotation.z = Math.PI / 2;
-    bridge.position.set(0, 0.04, 0.228);
+    bridge.position.set(0, 0.042, 0.213);
     head.add(bridge);
   }
 
   addHair(head, cfg.hairStyle ?? 'short', hairMat, cfg);
-  return { head, eyes };
+  return { head, eyes, face: { eyes, brows, mouth, mouthO, sweat, sweatMat } };
+}
+
+/* 놀람 표정 — 흰자 확장 대신 눈이 살짝 커지고 눈썹이 올라가고 "o" 입과 땀방울.
+   k: 0(평온) ~ 1(화들짝) */
+export function setFaceSurprise(person, k) {
+  const f = person && person.face;
+  if (!f) return;
+  const kk = Math.max(0, Math.min(1, k));
+  for (const e of f.eyes) {
+    e.scale.setScalar(1 + kk * 0.09);
+    e.position.y = e.userData.y0 + kk * 0.004;
+  }
+  for (const b of f.brows) b.position.y = kk * 0.014;
+  const o = kk >= 0.32;
+  f.mouth.visible = !o;
+  f.mouthO.visible = o;
+  if (o) {
+    const s = 0.85 + Math.min(1, (kk - 0.32) / 0.5) * 0.35;
+    f.mouthO.scale.set(s, s, s);
+  }
+  f.sweat.visible = kk > 0.02;
+  f.sweatMat.opacity = kk * 0.95;
+  f.sweat.position.y = f.sweat.userData.y0 + kk * 0.022;
 }
 
 /* ── 사람 한 명 ── */
@@ -261,20 +379,32 @@ export function makePerson(cfg = {}) {
 
   upper.add(ball(0.228, outer, 0, 0.17, 0, 1, 0.94, 0.86, 24));
   upper.add(ball(0.196, outer, 0, 0.34, 0, 1, 0.82, 0.88, 22));
-  upper.add(ball(0.104, outer, -0.185, 0.385, 0, 1, 0.92, 0.95, 16));
-  upper.add(ball(0.104, outer, 0.185, 0.385, 0, 1, 0.92, 0.95, 16));
+  // 어깨 요크 — 양어깨를 한 덩어리로 부드럽게 잇는 선
+  upper.add(ball(0.215, outer, 0, 0.345, 0, 1.02, 0.46, 0.84, 24));
 
   // 목
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.072, 0.13, 14), skinMat);
   neck.position.y = 0.49;
   upper.add(neck);
 
-  // 안쪽 셔츠 (앞트임)
-  upper.add(ball(0.072, inner, 0, 0.30, 0.148, 0.9, 1.85, 0.55, 16));
-
-  // 옷깃
-  upper.add(ball(0.072, accent, -0.072, 0.452, 0.115, 1.25, 0.55, 0.72, 14));
-  upper.add(ball(0.072, accent, 0.072, 0.452, 0.115, 1.25, 0.55, 0.72, 14));
+  // 안쪽 셔츠 — 목에서 가슴으로 매끈하게 퍼지는 자락 (툭 튀어나온 옷깃 대신)
+  const shirt = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.074, 0.150, 0.104, 28, 1, true),
+    new THREE.MeshStandardMaterial({
+      color: o.inner ?? 0xf2ece0,
+      roughness: 0.95,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    })
+  );
+  shirt.position.y = 0.455;
+  upper.add(shirt);
+  // 셔츠 깃 단 — 얇은 띠로만 은은하게
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.077, 0.0085, 8, 26), accent);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 0.505;
+  collar.scale.set(1, 1, 0.95);
+  upper.add(collar);
 
   // 주머니
   upper.add(ball(0.058, outerDark, -0.145, 0.095, 0.155, 1.2, 0.72, 0.45, 12));
@@ -293,29 +423,28 @@ export function makePerson(cfg = {}) {
   const arms = [];
   for (const s of [-1, 1]) {
     const shoulder = new THREE.Group();
-    shoulder.position.set(s * 0.203, 0.395, 0);
-    const um = new THREE.Mesh(new THREE.CapsuleGeometry(0.062, 0.14, 6, 14), outer);
-    um.position.y = -0.105;
+    shoulder.position.set(s * 0.19, 0.372, 0);
+    // 어깨 관절: 소매와 같은 색·굵기의 동그란 마디라 이음매 없이 이어진다
+    shoulder.add(ball(0.063, outer, 0, 0, 0, 1, 1, 1, 18));
+    const um = new THREE.Mesh(new THREE.CapsuleGeometry(0.062, 0.132, 6, 16), outer);
+    um.position.y = -0.11;
     um.castShadow = true;
     shoulder.add(um);
-    // 소매 커프스
-    const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.056, 0.014, 6, 14), accent);
+    // 소매 끝 단
+    const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.059, 0.0095, 8, 18), accent);
     cuff.rotation.x = Math.PI / 2;
-    cuff.position.y = -0.215;
+    cuff.position.y = -0.212;
     shoulder.add(cuff);
 
     const elbow = new THREE.Group();
-    elbow.position.y = -0.235;
-    // 팔꿈치 관절 (구부려도 틈이 벌어지지 않게)
-    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.062, 14, 10), skinMat);
-    joint.scale.set(1, 0.95, 0.95);
-    joint.castShadow = true;
-    elbow.add(joint);
-    const fm = new THREE.Mesh(new THREE.CapsuleGeometry(0.053, 0.125, 6, 14), skinMat);
-    fm.position.y = -0.09;
+    elbow.position.y = -0.232;
+    // 팔꿈치 관절: 팔뚝과 같은 굵기·색으로 겹처 부드럽게
+    elbow.add(ball(0.054, skinMat, 0, 0, 0, 1, 0.96, 0.96, 16));
+    const fm = new THREE.Mesh(new THREE.CapsuleGeometry(0.052, 0.12, 6, 14), skinMat);
+    fm.position.y = -0.095;
     fm.castShadow = true;
     elbow.add(fm);
-    const hand = ball(0.063, skinMat, 0, -0.215, 0.012, 1, 1.2, 0.92, 14);
+    const hand = ball(0.058, skinMat, 0, -0.206, 0.008, 1.02, 1.16, 0.94, 16);
     elbow.add(hand);
     shoulder.add(elbow);
     upper.add(shoulder);
@@ -324,19 +453,18 @@ export function makePerson(cfg = {}) {
   }
 
   /* ── 머리 ── */
-  const { head, eyes } = buildHead(cfg);
+  const { head, eyes, face } = buildHead(cfg);
   head.position.set(0, 0.735, 0.005);
   upper.add(head);
-  const neckGlow = null;
 
   g.traverse((o2) => {
-    if (o2.isMesh) {
+    if (o2.isMesh && !o2.userData.flat) {
       o2.castShadow = true;
       o2.receiveShadow = true;
     }
   });
 
-  return { group: g, upper, head, legs, arms, eyes };
+  return { group: g, upper, head, legs, arms, eyes, face };
 }
 
 /* ── 들고 있는 물건 ── */
@@ -495,6 +623,10 @@ export const NPC_DEFS = [
       cry: '헉!',
       line: '"으악, 뭐야—" 소파 밑에서 발목을 톡. 손님이 다리를 접고 소파 위로 올라갔다. 내 자리가 반쯤 돌아왔다.',
     },
+    scratch: {
+      cry: '아얏!',
+      line: '"아얏—! 이 녀석, 진짜 발톱이 있네!" 손님이 소파에서 굴러 내려와 벽 쪽으로 물러섰다. 빈손으로 온 값은 이렇게 치른다.',
+    },
   },
   {
     id: 'churu',
@@ -519,6 +651,10 @@ export const NPC_DEFS = [
       cry: '어?!',
       line: '"어?! 캔이 왜—" 발치의 캔이 굴러가고, 츄르 봉지가 손에서 미끄러졌다. 반 개가 한 개가 되는 순간은 이렇게 온다.',
     },
+    scratch: {
+      cry: '아야!',
+      line: '"아야! 알았어, 잘못했어!" 움켜쥐던 츄르 봉지가 바닥으로 떨어졌다. 아끼던 반 개가 이제 내 것이다.',
+    },
   },
   {
     id: 'parcel',
@@ -542,6 +678,10 @@ export const NPC_DEFS = [
       label: '상자 밀기',
       cry: '아이고!',
       line: '"아이고!" 작은 상자가 발끝에서 툭. 기사는 잡으려다 두 개를 더 떨어뜨렸고, 그 사이 내가 제일 위에 올라갔다.',
+    },
+    scratch: {
+      cry: '으악!',
+      line: '"으악, 고양이 발톱!!" 상자가 또 하나 쏟아지고 기사가 벽을 짚고 물러섰다. 오늘 쓰다듬은 횟수는 여전히 0회다.',
     },
   },
   {
@@ -571,6 +711,10 @@ export const NPC_DEFS = [
       cry: '어머나!',
       line: '"어머나!" 뒤에서 야옹. 할머니가 바구니를 흔들며 웃었고, 나는 미안해서 다리를 한 번 비볐다. 그 손이 결국 내 머리에 왔다.',
     },
+    scratch: {
+      cry: '어머!',
+      line: '"어머, 어머나!" 바구니가 흔들리고 할머니가 뒷걸음질 쳤다. 무는 하나도 안 다쳤다. 나도 그렇게까지 나쁘지 않다.',
+    },
   },
   {
     id: 'photo',
@@ -594,6 +738,10 @@ export const NPC_DEFS = [
       cry: '우와!',
       line: '"우와—!" 셔터가 하늘을 찍고 다리 한쪽이 접혔다. 렌즈 대신 손이 나를 찾았으니 오늘 사진은 내가 이겼다.',
     },
+    scratch: {
+      cry: '우왁!',
+      line: '"우왁—! 발톱!" 렌즈가 바닥을 찍고 사진사가 뒤로 넘어질 뻔했다. 이 한 장만큼은 제대로 나왔을 것이다.',
+    },
   },
   {
     id: 'shout',
@@ -616,6 +764,10 @@ export const NPC_DEFS = [
       label: '야옹!',
       cry: '뭐야?!',
       line: '"뭐야?! 야옹?" 수화기 너머에서도 들렸다. 통화는 끊기고, 나는 그 발밑에서 하품을 한 번 했다.',
+    },
+    scratch: {
+      cry: '아야!!',
+      line: '"아야!! 잠깐만—" 통화가 끊기고 골목이 처음으로 조용해졌다. 오늘 내가 받은 선물 중 제일 큰 것이다.',
     },
   },
 ];
@@ -735,6 +887,18 @@ export function buildNpcs(parent) {
       headYaw: 0,
       react: { t: -1, dur: 1.7, kind: '' },
       eyeWide: 0,
+      // 할퀴기 · 성가심
+      annoyT: 0,
+      annoyMix: 0,
+      scratchCool: 0,
+      scratched: false,
+      scrapes: 0,
+      scratches: 0,
+      dwell: 0,
+      annoyNoticed: false,
+      knock: { x: 0, z: 0 },
+      knockV: null,
+      knockT: 0,
     });
   }
   return list;

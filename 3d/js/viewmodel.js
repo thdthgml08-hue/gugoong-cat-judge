@@ -49,6 +49,7 @@ export class Viewmodel {
     this.walkPhase = 0;
     this.swipeT = -1;
     this.swipeKind = '';
+    this.scratchT = -1;
 
     this.paws = [];
     this.whisks = [];
@@ -232,11 +233,17 @@ export class Viewmodel {
     this.swipeKind = kind;
   }
 
+  /* ───────── 할퀴기 — 두 앞발로 샥! 샥! ───────── */
+  scratch() {
+    this.scratchT = 0;
+  }
+
   reset() {
     this.gradeT = -1;
     this.swing = 0;
     this.walkPhase = 0;
     this.swipeT = -1;
+    this.scratchT = -1;
     this.inner.position.z = this.baseZ;
     this.setSwing(0);
   }
@@ -298,6 +305,30 @@ export class Viewmodel {
     const bob = moving ? Math.sin(ph * 2) * 0.024 * speed : Math.sin(t * 1.6) * 0.005;
     this.inner.position.y = bob;
     this.inner.rotation.z = (moving ? Math.sin(ph) * 0.026 * speed : 0) + pawLift * 0.02;
+
+    /* 할퀴기 — 왼발·오른발이 번갈아 화면을 긁는다 */
+    if (this.scratchT >= 0) {
+      this.scratchT += dt;
+      const p = this.scratchT / 0.62;
+      if (p >= 1) {
+        this.scratchT = -1;
+        this.inner.position.z = this.baseZ;
+      } else {
+        const s1 = Math.sin(clamp(p / 0.46, 0, 1) * Math.PI);
+        const s2 = Math.sin(clamp((p - 0.3) / 0.46, 0, 1) * Math.PI);
+        const L = this.paws[0];
+        const R = this.paws[1];
+        L.g.position.y = L.base.y + s1 * 0.36;
+        L.g.position.x = L.base.x + s1 * 0.34;
+        L.g.position.z = L.base.z + s1 * 0.26;
+        L.g.rotation.z = -s1 * 0.75;
+        R.g.position.y = R.base.y + s2 * 0.36;
+        R.g.position.x = R.base.x - s2 * 0.34;
+        R.g.position.z = R.base.z + s2 * 0.26;
+        R.g.rotation.z = s2 * 0.75;
+        this.inner.position.z = this.baseZ + Math.max(s1, s2) * 0.06;
+      }
+    }
 
     /* 장난 — 오른발을 뻗어 툭, 또는 머리를 내밀어 야옹 */
     if (this.swipeT >= 0) {
