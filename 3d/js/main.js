@@ -164,7 +164,7 @@ class Game {
       opacity: 0,
     });
     const s = new THREE.Sprite(mat);
-    s.scale.set(1.3, 0.65, 1);
+    s.scale.set(1.04, 0.52, 1);
     s.visible = false;
     s.renderOrder = 22;
     this.scene.add(s);
@@ -418,11 +418,11 @@ class Game {
 
     // 머리 위 90점 팝업
     const headY = (npc.def.seatY ? 1.35 : 1.85) * (npc.def.scale ?? 1);
-    this.popupBase.set(npc.def.pos[0], headY + 0.32, npc.def.pos[1]);
+    this.popupBase.set(npc.def.pos[0], headY + 0.1, npc.def.pos[1]);
     this.popup.position.copy(this.popupBase);
     this.popup.visible = true;
     this.popup.material.opacity = 0;
-    this.popup.scale.set(1.16, 0.58, 1);
+    this.popup.scale.set(1.04, 0.52, 1);
     this.popupT = 0;
 
     this.showCaption(npc.def.name, npc.def.line);
@@ -680,8 +680,8 @@ class Game {
         const pop = Math.min(1, p * 5);
         const ease = 1 - Math.pow(1 - pop, 3);
         const sc = 0.55 + 0.45 * ease + Math.sin(p * Math.PI) * 0.06;
-        this.popup.scale.set(1.16 * sc, 0.58 * sc, 1);
-        this.popup.position.set(this.popupBase.x, this.popupBase.y + p * 0.42, this.popupBase.z);
+        this.popup.scale.set(1.04 * sc, 0.52 * sc, 1);
+        this.popup.position.set(this.popupBase.x, this.popupBase.y + p * 0.3, this.popupBase.z);
         this.popup.material.opacity = p < 0.72 ? 1 : clamp(1 - (p - 0.72) / 0.28, 0, 1);
       }
     }
