@@ -61,7 +61,7 @@ export function buildWorld() {
 
   // 잔디 띠
   const grassMat = std(0x7d9a6a, { roughness: 1 });
-  for (const [x, z, w, d] of [[-9.9, 10.5, 2.6, 20.6], [9.9, 10.5, 2.6, 20.6]]) {
+  for (const [x, z, w, d] of [[-4.75, 10.5, 1.7, 20.6], [4.75, 10.5, 1.7, 20.6]]) {
     const g = box(w, 0.04, d, grassMat, x, -0.01, z, { cast: false });
     root.add(g);
   }
@@ -141,7 +141,7 @@ export function buildWorld() {
 
   /* ─────────────── 벽시계 · 액자 ─────────────── */
   const clock = new THREE.Group();
-  clock.position.set(4.9, 2.55, -13.94);
+  clock.position.set(6.4, 2.9, -13.94);
   const cFace = cyl(0.32, 0.32, 0.06, std(0xfffaf0), 0, 0, 0, 26);
   cFace.rotation.x = Math.PI / 2;
   clock.add(cFace);
@@ -425,27 +425,27 @@ export function buildWorld() {
       const h = [5.2, 4.3, 5.6][i];
       const z0 = 2.2 + i * 6.4;
       const w = 6.2;
-      const b = box(1.6, h, w, std(facadeCols[(i + (side > 0 ? 3 : 0)) % facadeCols.length], { roughness: 0.96 }), side * 11.9, h / 2, z0);
+      const b = box(1.6, h, w, std(facadeCols[(i + (side > 0 ? 3 : 0)) % facadeCols.length], { roughness: 0.96 }), side * 6.35, h / 2, z0);
       facade.add(b);
       // 지붕
-      facade.add(box(2.1, 0.22, w + 0.4, std(roofs[i % 3]), side * 11.9, h + 0.1, z0));
-      facade.add(box(1.6, 0.36, 0.3, std(roofs[i % 3]), side * 11.9, h + 0.3, z0 - w / 2 + 0.15));
+      facade.add(box(2.1, 0.22, w + 0.4, std(roofs[i % 3]), side * 6.35, h + 0.1, z0));
+      facade.add(box(1.6, 0.36, 0.3, std(roofs[i % 3]), side * 6.35, h + 0.3, z0 - w / 2 + 0.15));
       // 창문
       for (let k = 0; k < 2; k++) {
         const wz = z0 - w / 2 + 1.5 + k * 3.2;
         const wy = 1.7 + (i % 2) * 0.9;
-        const wm = box(0.1, 1.35, 1.05, std(0x6c8fa8, { roughness: 0.4, metalness: 0.1 }), side * 11.03, wy, wz);
+        const wm = box(0.1, 1.35, 1.05, std(0x6c8fa8, { roughness: 0.4, metalness: 0.1 }), side * 5.48, wy, wz);
         facade.add(wm);
-        facade.add(box(0.14, 1.5, 0.12, std(0xfff6e4), side * 11.0, wy, wz - 0.58));
-        facade.add(box(0.14, 1.5, 0.12, std(0xfff6e4), side * 11.0, wy, wz + 0.58));
-        facade.add(box(0.14, 0.12, 1.18, std(0xfff6e4), side * 11.0, wy + 0.72, wz));
-        facade.add(box(0.14, 0.12, 1.18, std(0xfff6e4), side * 11.0, wy - 0.72, wz));
-        facade.add(box(0.14, 0.08, 1.06, std(0xfff6e4), side * 11.0, wy, wz));
+        facade.add(box(0.14, 1.5, 0.12, std(0xfff6e4), side * 5.45, wy, wz - 0.58));
+        facade.add(box(0.14, 1.5, 0.12, std(0xfff6e4), side * 5.45, wy, wz + 0.58));
+        facade.add(box(0.14, 0.12, 1.18, std(0xfff6e4), side * 5.45, wy + 0.72, wz));
+        facade.add(box(0.14, 0.12, 1.18, std(0xfff6e4), side * 5.45, wy - 0.72, wz));
+        facade.add(box(0.14, 0.08, 1.06, std(0xfff6e4), side * 5.45, wy, wz));
       }
       // 현관문
       const dz = z0 - w / 2 + 0.75;
-      facade.add(box(0.12, 1.95, 0.9, std(0x8a6a52), side * 11.02, 0.98, dz));
-      facade.add(box(0.16, 0.1, 1.1, std(0xfff6e4), side * 11.0, 2.0, dz));
+      facade.add(box(0.12, 1.95, 0.9, std(0x8a6a52), side * 5.47, 0.98, dz));
+      facade.add(box(0.16, 0.1, 1.1, std(0xfff6e4), side * 5.45, 2.0, dz));
       // 차양 (가게 느낌)
       if (i === 1) {
         const stripe = canvasTexture(128, 64, (c, w, h) => {
@@ -455,7 +455,7 @@ export function buildWorld() {
           }
         }, { repeat: false });
         const aw = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 3.2), new THREE.MeshBasicMaterial({ map: stripe }));
-        aw.position.set(side * 11.0, 2.45, z0 + 1.2);
+        aw.position.set(side * 5.45, 2.45, z0 + 1.2);
         aw.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
         aw.rotation.x = 0.35;
         facade.add(aw);
@@ -463,41 +463,41 @@ export function buildWorld() {
     }
   }
   root.add(facade);
-  addCollider(-11.9, 10.5, 1.8, 21);
-  addCollider(11.9, 10.5, 1.8, 21);
+  addCollider(-6.35, 10.5, 1.8, 21);
+  addCollider(6.35, 10.5, 1.8, 21);
 
   // 집 옆 틈 막는 울타리
   for (const side of [-1, 1]) {
-    const fx = side * 9.8;
+    const fx = side * 5.95;
     const fenceG = new THREE.Group();
-    for (let i = 0; i < 6; i++) {
-      fenceG.add(box(0.12, 0.9, 0.3, mWood, -1.25 + i * 0.5, 0.45, 0));
+    for (let i = 0; i < 4; i++) {
+      fenceG.add(box(0.12, 0.9, 0.3, mWood, -0.65 + i * 0.44, 0.45, 0));
     }
-    fenceG.add(box(3.0, 0.12, 0.14, mWood, 0, 0.66, 0));
-    fenceG.add(box(3.0, 0.12, 0.14, mWood, 0, 0.3, 0));
+    fenceG.add(box(1.5, 0.12, 0.14, mWood, 0, 0.66, 0));
+    fenceG.add(box(1.5, 0.12, 0.14, mWood, 0, 0.3, 0));
     fenceG.position.set(fx, 0, 0.55);
     fenceG.rotation.y = Math.PI / 2;
     root.add(fenceG);
-    addCollider(fx, 0.55, 0.45, 3.2);
+    addCollider(fx, 0.55, 0.5, 1.6);
   }
 
   /* ─────────────── 뒤 울타리 ─────────────── */
   const backFence = new THREE.Group();
   backFence.position.set(0, 0, 20.4);
-  for (let i = -14; i <= 14; i++) {
+  for (let i = -8; i <= 8; i++) {
     backFence.add(box(0.16, 1.15, 0.14, mWood, i * 0.75, 0.58, 0));
     const tip = box(0.18, 0.16, 0.16, mWoodDark, i * 0.75, 1.2, 0);
     tip.rotation.y = Math.PI / 4;
     backFence.add(tip);
   }
-  backFence.add(box(21.5, 0.12, 0.1, mWoodDark, 0, 0.45, 0.12));
-  backFence.add(box(21.5, 0.12, 0.1, mWoodDark, 0, 0.95, 0.12));
+  backFence.add(box(12.4, 0.12, 0.1, mWoodDark, 0, 0.45, 0.12));
+  backFence.add(box(12.4, 0.12, 0.1, mWoodDark, 0, 0.95, 0.12));
   root.add(backFence);
-  addCollider(0, 20.4, 22, 0.6);
+  addCollider(0, 20.4, 13, 0.6);
 
   // 울타리 뒤 수풀 · 언덕
   for (let i = 0; i < 14; i++) {
-    const x = -13 + i * 2;
+    const x = -7 + i * 1.05;
     const b = sphere(0.9 + Math.random() * 0.5, std(i % 2 ? 0x6f8a5f : 0x7d9a6a, { roughness: 1 }), x, 0.7 + Math.random() * 0.3, 21.6 + Math.random() * 0.8, 10);
     b.scale.set(1.2, 0.9, 1);
     root.add(b);
@@ -511,7 +511,7 @@ export function buildWorld() {
 
   /* ─────────────── 가로등 ─────────────── */
   const street = new THREE.Group();
-  street.position.set(4.4, 0, 4.35);
+  street.position.set(3.35, 0, 4.25);
   street.add(cyl(0.22, 0.3, 0.35, std(0x4a4038), 0, 0.17, 0, 12));
   street.add(cyl(0.09, 0.11, 3.3, std(0x3f4a4a), 0, 1.9, 0, 10));
   const armCurve = new THREE.Group();
@@ -527,13 +527,13 @@ export function buildWorld() {
   street.add(armCurve);
   root.add(street);
   const streetLight = new THREE.PointLight(0xffc98a, 9, 13, 2);
-  streetLight.position.set(3.55, 3.2, 4.35);
+  streetLight.position.set(2.5, 3.2, 4.25);
   root.add(streetLight);
-  addCollider(4.4, 4.35, 0.7, 0.7);
+  addCollider(3.35, 4.25, 0.7, 0.7);
 
   /* ─────────────── 우체통 ─────────────── */
   const mail = new THREE.Group();
-  mail.position.set(-4.5, 0, 2.55);
+  mail.position.set(-3.75, 0, 2.7);
   const mRed = std(0xb1544c, { roughness: 0.7 });
   mail.add(box(0.8, 0.95, 0.55, mRed, 0, 1.15, 0));
   mail.add(cyl(0.4, 0.4, 0.1, mRed, 0, 1.62, 0, 16).rotateZ(Math.PI / 2));
@@ -547,11 +547,11 @@ export function buildWorld() {
   mail.add(box(0.34, 0.22, 0.02, std(0xfff6e4), 0.15, 1.55, 0.3, { rotZ: 0.2, rotX: -0.3 }));
   mail.add(box(0.34, 0.22, 0.02, std(0xf4e2c2), -0.18, 1.42, 0.3, { rotZ: -0.35, rotX: -0.2 }));
   root.add(mail);
-  addCollider(-4.5, 2.55, 1.1, 0.9);
+  addCollider(-3.75, 2.7, 1.1, 0.9);
 
   /* ─────────────── 택배 상자 더미 ─────────────── */
   const boxesG = new THREE.Group();
-  boxesG.position.set(7.9, 0, 13.2);
+  boxesG.position.set(4.55, 0, 13.0);
   const cardboard = std(0xc59a67, { roughness: 0.95 });
   const tapeMat = std(0xe8d3a8);
   const stacks = [
@@ -566,11 +566,11 @@ export function buildWorld() {
     boxesG.add(box(w * 0.98, 0.03, 0.1, tapeMat, x, y + h / 2, z, { rotY: (x + z) * 0.12 }));
   }
   root.add(boxesG);
-  addCollider(7.9, 13.2, 2.7, 2.0);
+  addCollider(4.55, 13.0, 2.4, 1.9);
 
   /* ─────────────── 할머니 손수레 ─────────────── */
   const cart = new THREE.Group();
-  cart.position.set(-6.35, 0, 9.15);
+  cart.position.set(-4.55, 0, 9.0);
   cart.rotation.y = 0.5;
   cart.add(box(0.66, 0.6, 0.8, std(0xb9ab97, { roughness: 0.6 }), 0, 0.66, 0));
   const meshMat = std(0x7d7468, { roughness: 0.7 });
@@ -591,7 +591,41 @@ export function buildWorld() {
   cart.add(sphere(0.1, std(0xc9704f), 0.14, 0.55, -0.1, 10));
   cart.add(cyl(0.07, 0.07, 0.22, std(0xf4e2c2), 0.04, 0.62, 0.2, 10));
   root.add(cart);
-  addCollider(-6.35, 9.15, 1.0, 1.1);
+  addCollider(-4.55, 9.0, 1.0, 1.1);
+
+  /* ─────────────── 벤치 · 화분 ─────────────── */
+  const bench = new THREE.Group();
+  bench.position.set(4.4, 0, 8.5);
+  bench.rotation.y = -Math.PI / 2;
+  bench.add(box(1.7, 0.09, 0.5, mWood, 0, 0.46, 0));
+  bench.add(box(1.7, 0.42, 0.08, mWood, 0, 0.72, -0.24));
+  for (const s2 of [-1, 1]) {
+    bench.add(box(0.1, 0.46, 0.5, mWoodDark, s2 * 0.7, 0.23, 0));
+    bench.add(box(0.1, 0.46, 0.5, std(0x9a7a5f), s2 * 0.7, 0.72, -0.24));
+  }
+  root.add(bench);
+  addCollider(4.4, 8.5, 0.7, 1.8);
+
+  const potAt = (x, z, col) => {
+    const g2 = new THREE.Group();
+    g2.position.set(x, 0, z);
+    g2.add(cyl(0.17, 0.12, 0.28, std(0xb5713c), 0, 0.14, 0, 12));
+    g2.add(cyl(0.16, 0.16, 0.04, std(0x5b4534), 0, 0.29, 0, 12));
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2;
+      g2.add(sphere(0.07, std(col, { roughness: 0.9 }), Math.cos(a) * 0.08, 0.38, Math.sin(a) * 0.08, 8));
+    }
+    g2.add(sphere(0.1, std(0x6f9270), 0, 0.4, 0, 10));
+    root.add(g2);
+  };
+  potAt(-5.15, 4.2, 0xd98b6a);
+  potAt(5.1, 6.4, 0xe8b45a);
+  potAt(-5.1, 12.4, 0xc9704f);
+  potAt(5.05, 15.9, 0xd98b6a);
+
+  // 우체통 옆 나무 상자
+  root.add(box(0.5, 0.4, 0.5, std(0xb98a5c), -2.9, 0.2, 2.4, { rotY: 0.2 }));
+  root.add(box(0.4, 0.3, 0.4, std(0xa97a4c), -2.7, 0.55, 2.5, { rotY: -0.3 }));
 
   /* ─────────────── 나무 · 수풀 ─────────────── */
   const treeAt = (x, z, s = 1) => {
@@ -613,13 +647,13 @@ export function buildWorld() {
     root.add(t);
     addCollider(x, z, 0.7 * s, 0.7 * s);
   };
-  treeAt(-9.2, 6.4, 1.0);
-  treeAt(9.6, 17.4, 1.1);
-  treeAt(-9.6, 15.2, 0.9);
-  treeAt(7.2, 20.6, 1.2);
+  treeAt(-4.5, 6.6, 1.0);
+  treeAt(4.6, 17.4, 1.1);
+  treeAt(-4.5, 15.2, 0.9);
+  treeAt(2.9, 21.4, 1.2);
 
   for (let i = 0; i < 8; i++) {
-    const x = (i % 2 ? 1 : -1) * (9.4 + Math.random() * 0.6);
+    const x = (i % 2 ? 1 : -1) * (4.9 + Math.random() * 0.4);
     const z = 3 + i * 2.2;
     const b = sphere(0.45 + Math.random() * 0.2, std(0x6f8a5f, { roughness: 1 }), x, 0.36, z, 10);
     b.scale.set(1.2, 0.8, 1.2);
@@ -632,7 +666,7 @@ export function buildWorld() {
   const flagGeo = new THREE.ConeGeometry(0.16, 0.28, 3);
   for (let i = 0; i < 20; i++) {
     const t = i / 19;
-    const x = -10.6 + t * 21.2;
+    const x = -5.3 + t * 10.6;
     const sag = Math.sin(t * Math.PI) * 0.65;
     const f = new THREE.Mesh(flagGeo, std(buntingCols[i % buntingCols.length], { roughness: 0.9, side: THREE.DoubleSide }));
     f.position.set(x, 3.35 - sag, 8.4);
@@ -642,7 +676,7 @@ export function buildWorld() {
   }
   const stringMat = std(0x6d5a48);
   root.add(bunting);
-  root.add(box(21.4, 0.02, 0.02, stringMat, 0, 3.24, 8.4, { cast: false }));
+  root.add(box(10.9, 0.02, 0.02, stringMat, 0, 3.24, 8.4, { cast: false }));
 
   /* ─────────────── 바닥 낙서 · 발도장 ─────────────── */
   const chalk = new THREE.Mesh(

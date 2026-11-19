@@ -138,6 +138,7 @@ class Game {
     setTimeout(() => { ui.boot.hidden = true; }, 500);
     window.__ggReady = true;
     window.__gg = this;
+    this.state = state;
 
     this.lastTick = performance.now();
     this.loop = this.loop.bind(this);
