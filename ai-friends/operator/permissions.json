@@ -1,0 +1,25 @@
+{
+  "agent": "집사 (operator)",
+  "principle": "least-privilege",
+  "allow": [
+    "service_health:read",
+    "security_cat:ask",
+    "report:read",
+    "report:summarize",
+    "admin:notify",
+    "admin:request_approval",
+    "decision_log:append"
+  ],
+  "deny": [
+    "data:delete",
+    "data:write",
+    "config:write",
+    "deploy:*",
+    "permissions:write",
+    "account:lock",
+    "ip:block",
+    "session:revoke",
+    "logs:delete",
+    "logs:export_external"
+  ]
+}
