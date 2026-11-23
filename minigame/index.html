@@ -33,6 +33,10 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
 .btn { font: inherit; font-weight: 700; font-size: 18px; color: #fff; background: var(--orange); border: 2px solid var(--dark);
   border-radius: 10px; padding: 12px 32px; box-shadow: 0 4px 0 var(--dark); cursor: pointer; }
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--dark); }
+.btn.ghost { background: var(--paper); color: var(--dark); font-size: 15px; padding: 9px 22px; }
+.btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+#ending { background: rgba(255, 246, 228, .78); }
+#ending h1 { color: #c9567f; }
 .best { margin-top: 14px; font-size: 13px; color: var(--soft); }
 .big { font-size: 44px; font-weight: 700; color: var(--dark); margin: 4px 0; }
 .stats { font-size: 14px; color: var(--soft); margin: 0 0 6px; }
@@ -64,11 +68,21 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       🌰 해바라기씨 +1 · 🌻 해바라기 +10<br>
       씨앗 25개로 볼주머니 가득 → <b>🌻 필살기!</b> (버튼 · X키)<br>
       까마귀 · 먹구름 · 연줄 조심 (목숨 3개)<br>
-      단계 끝마다 <b>보스</b>! 1단계 보스는 꽃밭 나비<br>
+      단계 끝마다 <b>보스</b>! 이기면 화해하고 친구가 돼서 선물을 준다<br>
       보스전에선 씨앗 껍질을 자동으로 <b>퉤퉤</b> 발사
     </div>
     <button class="btn" id="start">날아라!</button>
     <p class="best" id="best1"></p>
+  </div>
+
+  <div class="overlay" id="ending" hidden>
+    <h1>모두 친구가 됐다! 🌻</h1>
+    <p class="sub">꽃밭 나비 · 대왕 까마귀<br>밤 부엉이 · 먹구름 대장이랑<br>햄찌가 해바라기 파티를 열었어요</p>
+    <p class="stats" id="endstats"></p>
+    <div class="btns">
+      <button class="btn" id="cont">계속 날기</button>
+      <button class="btn ghost" id="finish">여기서 끝내기</button>
+    </div>
   </div>
 
   <div class="overlay" id="over" hidden>
@@ -135,7 +149,13 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     storm: { name: '먹구름 대장', hp: 44, r: 56 },
   };
   const bossTypeOf = st => st === 1 ? 'butterfly' : ['crow', 'owl', 'storm'][(st - 2) % 3];
-  const SP_NEED = 25;   // 필살기에 필요한 씨앗 수
+  // 화해 장면 문구와 친구 선물
+  const FRIEND_INFO = {
+    butterfly: { make: '나비랑 친구가 됐다!', why: '나비가 꿀을 들고 날아온다…', icon: '🍯', title: '나비 친구가 꿀을 줬다!', sub: '단계마다 한 번 막아주는 꿀 방패 🍯', col: '#c9567f' },
+    crow:      { make: '대왕 까마귀랑 화해했다!', why: '사실 씨앗이 부러웠던 거래…', icon: '💎', title: '까마귀가 반짝이를 줬다!', sub: '이제 씨앗이 햄찌한테 끌려온다 ✨', col: '#4a4560' },
+    owl:       { make: '밤 부엉이랑 화해했다!', why: '자는데 시끄러워서 화났던 거래…', icon: '🌰', title: '부엉이가 도토리를 줬다!', sub: '필살기가 더 빨리 찬다 (씨앗 25 → 18개)', col: '#7a5a3a' },
+    storm:     { make: '먹구름 대장이랑 화해했다!', why: '혼자라서 심술났던 거래…', icon: '🌈', title: '먹구름 대장이 무지개를 줬다!', sub: '목숨 가득 + 먹구름이 더는 안 아프다', col: '#5a6a9a' },
+  };
   const STAGE_LEN = 32;
 
   // ── 그리기: 햄스터 ──
@@ -276,6 +296,30 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     c.restore();
   }
 
+  function drawFriendCloud(c, x, y, s, t) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = '#ffffff';
+    for (const [cx, cy, r] of [[-16, 2, 12], [0, -6, 16], [17, 1, 12], [6, 6, 11], [-6, 6, 11]]) { c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill(); }
+    const cols = ['#e8574a', '#f2c94c', '#4fb06d', '#3f6fb5'];
+    cols.forEach((col, i) => { c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.arc(0, 22, 18 - i * 3, Math.PI * 1.1, Math.PI * 1.9); c.stroke(); });
+    c.fillStyle = '#3a2a1c'; c.beginPath(); c.arc(-6, -2, 1.8, 0, TAU); c.arc(6, -2, 1.8, 0, TAU); c.fill();
+    c.strokeStyle = '#3a2a1c'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 2, 3.5, .2, Math.PI - .2); c.stroke();
+    c.fillStyle = 'rgba(240,130,130,.55)'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 11, 3, 2.6, 0, TAU); c.fill(); }
+    c.restore();
+  }
+  function drawFriend(f, s) {
+    const sc = f.s * s;
+    if (f.type === 'butterfly') drawButterfly(ctx, f.x, f.y, sc, t + f.ph, true);
+    else if (f.type === 'crow') { ctx.save(); ctx.translate(f.x, f.y); ctx.scale(-1, 1); drawCrow(ctx, 0, 0, sc * .95, t * 9 + f.ph); ctx.restore(); }
+    else if (f.type === 'owl') drawOwl(ctx, f.x, f.y, sc * .85, t + f.ph, false, true);
+    else drawFriendCloud(ctx, f.x, f.y, sc * .8, t);
+    if (f.giving) {
+      const gy = f.y + 30 * sc;
+      if (f.type === 'butterfly') drawHoney(ctx, f.x, gy, 1.5 * s);
+      else { ctx.font = `${Math.round(22 * s)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(FRIEND_INFO[f.type].icon, f.x, gy); }
+    }
+  }
+
   function drawCrown(c, x, y, s) {
     c.save(); c.translate(x, y); c.scale(s, s);
     c.fillStyle = '#f2c94c'; c.strokeStyle = '#a5761c'; c.lineWidth = 1;
@@ -300,7 +344,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     c.restore();
   }
 
-  function drawOwl(c, x, y, s, t, blink) {
+  function drawOwl(c, x, y, s, t, blink, friendly) {
     c.save(); c.translate(x, y); c.scale(s, s);
     const flap = Math.sin(t * 6) * 6;
     c.fillStyle = '#5e4630';                                   // 날개
@@ -319,8 +363,13 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
         c.fillStyle = '#1a120c'; c.beginPath(); c.arc(sx * 7 - 1, -6, 2.6, 0, TAU); c.fill();
       }
     }
-    c.strokeStyle = '#3a2a1c'; c.lineWidth = 1.8;               // 화난 눈썹
-    for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 2, -12); c.lineTo(sx * 12, -15); c.stroke(); }
+    c.strokeStyle = '#3a2a1c'; c.lineWidth = 1.8;
+    if (friendly) {                                             // 순한 눈썹 + 볼터치
+      for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 3, -15); c.quadraticCurveTo(sx * 7, -17, sx * 11, -15); c.stroke(); }
+      c.fillStyle = 'rgba(240,130,130,.6)'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 12, 1, 2.5, 0, TAU); c.fill(); }
+    } else {                                                    // 화난 눈썹
+      for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 2, -12); c.lineTo(sx * 12, -15); c.stroke(); }
+    }
     c.fillStyle = '#f0a83a'; c.beginPath(); c.moveTo(-2.5, -2); c.lineTo(2.5, -2); c.lineTo(0, 3); c.fill();
     c.restore();
   }
@@ -349,14 +398,15 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   // ── 상태 ──
   const S = () => Math.min(W, H * .62) / 360;
   let ham, things, pops, clouds, hills, stars, rain, seeds, flowers, lives, dist, t, spawnT, running, hurtT, pouch, holding, speed;
-  let friend, honey, shield, spReady, specialT, spShotT, specials;
+  let friends, shield, spReady, specialT, spShotT, specials, spNeed, magnet, stormsFriendly, endingSeen, pendingEnding, endingT, petals;
   let stage, stageT, phase, clearT, boss, bossKills, shells, bullets, shotT, banner, prevTheme, themeFade, shake;
 
   function reset() {
     ham = { x: W * .27, y: H * .45, vy: 0, spin: 0, spit: 0 };
     things = []; pops = []; shells = []; bullets = []; seeds = 0; flowers = 0; lives = 3; dist = 0; t = 0;
     spawnT = 1; hurtT = 0; pouch = 0; holding = false;
-    friend = null; honey = null; shield = false; spReady = false; specialT = 0; spShotT = 0; specials = 0;
+    friends = []; shield = false; spReady = false; specialT = 0; spShotT = 0; specials = 0;
+    spNeed = 25; magnet = false; stormsFriendly = false; endingSeen = false; pendingEnding = false; endingT = 0; petals = [];
     stage = 1; stageT = 0; phase = 'fly'; clearT = 0; boss = null; bossKills = 0; shotT = 0; shake = 0;
     prevTheme = null; themeFade = 1; banner = null;
     clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: Math.random() * H * .6, r: 18 + Math.random() * 22, k: .2 + Math.random() * .3 }));
@@ -373,10 +423,11 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   }
   const spBtn = $('sp');
   function updateSp() {
-    spBtn.hidden = !running;
+    spBtn.hidden = !running || phase === 'ending';
     spBtn.classList.toggle('ready', spReady);
-    spBtn.style.setProperty('--p', Math.round(pouch / SP_NEED * 100));
+    spBtn.style.setProperty('--p', Math.round(pouch / spNeed * 100));
   }
+  const hasFriend = type => friends.some(f => f.type === type && !f.giving);
   function showBanner(txt, sub, col = '#5a3720') { banner = { txt, sub, col, life: 2.4 }; }
 
   // ── 입력 ──
@@ -435,6 +486,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     prevTheme = themeOf(stage); stage++; themeFade = 0;
     phase = 'fly'; stageT = 0; boss = null; bullets = []; shells = [];
     if (lives < 3) { lives++; pops.push({ x: ham.x, y: ham.y - 46 * S(), txt: '목숨 +1', col: '#d9534f', life: 1.4 }); }
+    if (hasFriend('butterfly') && !shield) { shield = true; pops.push({ x: ham.x, y: ham.y - 66 * S(), txt: '🍯 꿀 방패 충전', col: '#c98a1e', life: 1.4 }); }
     showBanner(`${stage}단계`, themeOf(stage).name);
     beep(523, .12, 'square', .05); setTimeout(() => beep(784, .16, 'square', .05), 130);
     updateHud();
@@ -553,23 +605,12 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
 
     // 단계 흐름
     if (phase === 'fly' && stageT >= STAGE_LEN) startBoss();
-    if (phase === 'clear') { clearT -= dt; if (clearT <= 0) nextStage(); }
+    if (phase === 'clear') { clearT -= dt; if (clearT <= 0 && !friends.some(f => f.giving)) pendingEnding ? startEnding() : nextStage(); }
+    if (phase === 'ending') { updateEnding(dt); return; }
+    ham.x += (W * .27 - ham.x) * Math.min(1, dt * 3);
 
-    // 나비 친구: 꿀을 건네러 왔다가 그 뒤로는 햄찌 뒤를 따라다님
-    if (friend) {
-      const giving = honey && !honey.given;
-      const tx = ham.x + (giving ? 34 : -40) * s, ty = ham.y + (giving ? -14 : -36 + Math.sin(t * 2) * 6) * s;
-      const k = Math.min(1, dt * (giving ? 2.2 : 4));
-      friend.x += (tx - friend.x) * k; friend.y += (ty - friend.y) * k;
-      friend.s += ((giving ? 1.5 : .9) - friend.s) * Math.min(1, dt * 2);
-      if (giving && Math.hypot(friend.x - tx, friend.y - ty) < 12 * s) {
-        honey.given = true; shield = true;
-        pops.push({ x: ham.x, y: ham.y - 46 * s, txt: '🍯 꿀 방패!', col: '#c98a1e', life: 1.5 });
-        showBanner('나비 친구가 꿀을 줬다!', '한 번 막아주는 꿀 방패 🍯', '#c9567f');
-        [784, 988, 1175].forEach((f, i) => setTimeout(() => beep(f, .12, 'sine', .06), i * 90));
-        clearT = Math.max(clearT, 2.2);
-      }
-    }
+    // 친구들: 선물을 건네러 햄찌 앞으로 왔다가, 그 뒤로는 햄찌 뒤에 줄지어 따라다님
+    updateFriends(dt, false);
 
     // 필살기 중: 무적 + 씨앗 부채꼴 연사 + 씨앗 자석
     if (specialT > 0) {
@@ -589,16 +630,16 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       o.x -= speed * dt;
       if (o.kind === 'kite') { o.ph += dt * 2; o.y = o.base + Math.sin(o.ph) * 18 * s; }
       if (o.kind === 'crow') { o.x -= o.vx * s * dt; o.ph += dt * 3; o.y = o.base + Math.sin(o.ph) * 25 * s; }
-      if (o.kind === 'seed' && specialT > 0) {
+      if (o.kind === 'seed' && (specialT > 0 || magnet)) {
         const dx = ham.x - o.x, dy = ham.y - o.y, d = Math.hypot(dx, dy);
-        if (d < 140 * s) { o.x += dx / d * 400 * s * dt; o.y += dy / d * 400 * s * dt; }
+        if (d < (specialT > 0 ? 140 : 95) * s) { o.x += dx / d * 400 * s * dt; o.y += dy / d * 400 * s * dt; }
       }
       const dx = o.x - ham.x, dy = o.y - ham.y, d = Math.hypot(dx, dy);
       if (o.dead) continue;
       if (o.kind === 'seed' && d < hr + 8 * s) {
         o.dead = true; seeds++; beep(880 + (pouch % 5) * 80, .05);
-        if (!spReady && specialT <= 0 && ++pouch >= SP_NEED) {
-          spReady = true; pouch = SP_NEED;
+        if (!spReady && specialT <= 0 && ++pouch >= spNeed) {
+          spReady = true; pouch = spNeed;
           pops.push({ x: ham.x, y: ham.y - 50 * s, txt: '볼주머니 가득! 필살기 준비!', col: '#d96a1e', life: 1.8 });
           beep(660, .12, 'square', .06, 2);
         }
@@ -611,7 +652,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
         o.dead = true; seeds -= Math.min(seeds, 5); hurt('까악! 씨앗 뺏겼다', -180);
       } else if (o.kind === 'kite' && !o.hit && hurtT <= 0 && (Math.hypot(dx, dy) < hr + 16 * s || segDist(ham.x, ham.y, ...kiteLine(o, s)) < hr * .6)) {
         o.hit = true; hurt('연줄에 엉켰다!', -160);
-      } else if (o.kind === 'storm' && Math.hypot(dx, dy + 8 * s) < hr + 28 * s) {
+      } else if (o.kind === 'storm' && !stormsFriendly && Math.hypot(dx, dy + 8 * s) < hr + 28 * s) {
         hurt('찌릿!', 220);
       }
     }
@@ -631,7 +672,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     for (const sh of shells) {
       sh.x += 520 * s * dt; sh.y += (sh.vy || 0) * dt; sh.rot += dt * 14;
       for (const o of things) {      // 껍질에 맞은 장애물은 씨앗으로
-        if ((o.kind === 'crow' || o.kind === 'storm' || o.kind === 'kite') && Math.hypot(sh.x - o.x, sh.y - o.y) < 30 * s) {
+        if ((o.kind === 'crow' || (o.kind === 'storm' && !stormsFriendly) || o.kind === 'kite') && Math.hypot(sh.x - o.x, sh.y - o.y) < 30 * s) {
           o.kind = 'seed'; sh.dead = true; pops.push({ x: o.x, y: o.y - 18 * s, txt: '퉁!', col: '#c98a1e', life: .7 });
         }
       }
@@ -664,28 +705,90 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   }
 
   function defeatBoss() {
-    const s = S();
-    if (boss.type === 'butterfly') {   // 나비는 쓰러뜨리지 않고 친구가 된다
-      bossKills++; seeds += 20;
-      friend = { x: boss.x, y: boss.y, s: 2.4 }; honey = { given: false };
-      pops.push({ x: boss.x, y: boss.y - 60 * s, txt: '친구 됐다! +20', col: '#c9567f', life: 1.8 });
-      showBanner('나비랑 친구가 됐다!', '나비가 꿀을 들고 날아온다…', '#c9567f');
-      boss = null; bullets = []; phase = 'clear'; clearT = 4.5; specialT = 0;
-      [660, 880, 1100].forEach((f, i) => setTimeout(() => beep(f, .14, 'sine', .06), i * 120));
-      updateHud();
-      return;
-    }
-    const bonus = 50 * (stage - 1);
+    const s = S(), type = boss.type, info = FRIEND_INFO[type];
+    const bonus = type === 'butterfly' ? 20 : 50 * (stage - 1);
     seeds += bonus; bossKills++;
     for (let i = 0; i < 14; i++) {
       const a = i * TAU / 14;
       things.push({ kind: 'seed', x: boss.x + Math.cos(a) * 30 * s, y: boss.y + Math.sin(a) * 30 * s });
     }
-    pops.push({ x: boss.x, y: boss.y - 60 * s, txt: `격파! +${bonus}`, col: '#d96a1e', life: 1.8 });
-    showBanner('보스 격파!', `${boss.name} 퇴치 🎉`, '#d96a1e');
-    boss = null; bullets = []; phase = 'clear'; clearT = 2.6; shake = .3;
-    [660, 880, 1100].forEach((f, i) => setTimeout(() => beep(f, .14, 'square', .06), i * 120));
+    if (!friends.some(f => f.type === type)) {
+      friends.push({ type, x: boss.x, y: boss.y, s: 2.4, ph: Math.random() * TAU, giving: true });
+      pops.push({ x: boss.x, y: boss.y - 60 * s, txt: `화해! +${bonus}`, col: info.col, life: 1.8 });
+      showBanner(info.make, info.why, info.col);
+      clearT = 4.5;
+    } else {                           // 두 바퀴째부터는 이미 친구라 하이파이브만
+      pops.push({ x: boss.x, y: boss.y - 60 * s, txt: `또 화해! +${bonus}`, col: info.col, life: 1.8 });
+      showBanner('또 화해했다!', `${boss.name}랑 하이파이브 🙌`, info.col);
+      clearT = 2.6;
+    }
+    boss = null; bullets = []; phase = 'clear'; specialT = 0; shake = .2;
+    [660, 880, 1100].forEach((f, i) => setTimeout(() => beep(f, .14, 'sine', .06), i * 120));
     updateHud();
+  }
+
+  function giveGift(type) {
+    const s = S(), info = FRIEND_INFO[type];
+    if (type === 'butterfly') shield = true;
+    else if (type === 'crow') magnet = true;
+    else if (type === 'owl') { spNeed = 18; if (pouch >= spNeed) { pouch = spNeed; spReady = true; } }
+    else { lives = 3; stormsFriendly = true; if (!endingSeen) pendingEnding = true; }
+    pops.push({ x: ham.x, y: ham.y - 46 * s, txt: `${info.icon} 선물 받았다!`, col: info.col, life: 1.5 });
+    showBanner(info.title, info.sub, info.col);
+    [784, 988, 1175].forEach((f, i) => setTimeout(() => beep(f, .12, 'sine', .06), i * 90));
+    clearT = Math.max(clearT, 2.4);
+    updateHud();
+  }
+
+  function updateFriends(dt, party) {
+    const s = S();
+    let k = 0;
+    for (const f of friends) {
+      let tx, ty, sc;
+      if (f.giving) { tx = ham.x + 36 * s; ty = ham.y - 16 * s; sc = 1.5; }
+      else if (party) {                // 엔딩: 햄찌 둘레를 빙글빙글
+        const a = t * .9 + k * TAU / friends.length;
+        tx = ham.x + Math.cos(a) * 95 * s; ty = ham.y + Math.sin(a) * 70 * s; sc = 1.3; k++;
+      } else { tx = ham.x - (36 + Math.floor(k / 2) * 30) * s; ty = ham.y + ((k % 2 ? 24 : -34) + Math.sin(t * 2.5 - k * .8) * 6) * s; sc = .8; k++; }
+      const kk = Math.min(1, dt * (f.giving ? 2.2 : 4 - Math.min(k, 3) * .6));
+      f.x += (tx - f.x) * kk; f.y += (ty - f.y) * kk;
+      f.s += (sc - f.s) * Math.min(1, dt * 2);
+      if (f.giving && Math.hypot(f.x - tx, f.y - ty) < 12 * s) { f.giving = false; giveGift(f.type); }
+    }
+  }
+
+  // ── 엔딩: 다 같이 해바라기 파티 ──
+  function startEnding() {
+    phase = 'ending'; endingT = 0; pendingEnding = false; endingSeen = true;
+    prevTheme = themeOf(stage); themeFade = 0;   // 파티는 맑은 들판에서
+    things = []; bullets = []; shells = []; holding = false; specialT = 0; banner = null;
+    [523, 659, 784, 1047, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .16, 'sine', .06), i * 160));
+    updateHud();
+  }
+  function updateEnding(dt) {
+    const s = S();
+    endingT += dt;
+    ham.x += (W / 2 - ham.x) * Math.min(1, dt * 1.5);
+    ham.y += (H * .52 - ham.y) * Math.min(1, dt * 1.5);
+    ham.vy = 0; ham.spin += dt * 20;
+    updateFriends(dt, true);
+    if (Math.random() < dt * 30) petals.push({ x: Math.random() * W, y: -10, vy: 60 + Math.random() * 60, ph: Math.random() * TAU, seed: Math.random() < .3 });
+    for (const p of petals) { p.y += p.vy * dt; p.ph += dt * 3; p.x += Math.sin(p.ph) * 30 * dt; }
+    petals = petals.filter(p => p.y < H + 20);
+    for (const p of pops) { p.y -= 30 * dt; p.life -= dt; }
+    pops = pops.filter(p => p.life > 0);
+    if (endingT > 1 && Math.random() < dt * 2) pops.push({ x: ham.x + (Math.random() - .5) * 160 * s, y: ham.y - 60 * s, txt: ['냠냠!', '파티다!', '🌻', '고마워!', '친구!'][Math.floor(Math.random() * 5)], col: '#c9567f', life: 1.2 });
+    if (endingT > 7 && $('ending').hidden) {
+      $('endstats').textContent = `지금까지 씨앗 ${seeds}개 · 필살기 ${specials}번`;
+      $('ending').hidden = false;
+    }
+  }
+  function continueAfterEnding() {
+    $('ending').hidden = true;
+    petals = [];
+    nextStage();
+    prevTheme = THEMES[0]; themeFade = 0;
+    spBtn.hidden = false;
   }
 
   // ── 그리기 ──
@@ -737,13 +840,13 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - .5) * 8 * shake / .3, (Math.random() - .5) * 8 * shake / .3);
     if (prevTheme && themeFade < 1) drawBg(prevTheme, 1);
-    drawBg(themeOf(stage || 1), prevTheme ? themeFade : 1);
+    drawBg(phase === 'ending' ? THEMES[0] : themeOf(stage || 1), prevTheme ? themeFade : 1);
 
     for (const o of things) {
       if (o.kind === 'seed') drawSeed(ctx, o.x, o.y + Math.sin(t * 4 + o.x * .05) * 2, 1.6 * s, .4);
       else if (o.kind === 'flower') drawFlower(ctx, o.x, o.y, 1.3 * s, t * 1.5);
       else if (o.kind === 'crow') drawCrow(ctx, o.x, o.y, 1.3 * s, o.ph * 4);
-      else if (o.kind === 'storm') drawStorm(ctx, o.x, o.y, 1.4 * s, t, false);
+      else if (o.kind === 'storm') stormsFriendly ? drawFriendCloud(ctx, o.x, o.y, 1.3 * s, t) : drawStorm(ctx, o.x, o.y, 1.4 * s, t, false);
       else if (o.kind === 'kite') {
         const [x1, y1, x2, y2] = kiteLine(o, s);
         ctx.strokeStyle = themeOf(stage).fx === 'stars' ? 'rgba(255,250,230,.85)' : 'rgba(90,55,32,.7)'; ctx.lineWidth = 1.6;
@@ -776,7 +879,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
         drawCrow(ctx, boss.x, boss.y, 3.2 * s, boss.t * 9);
         drawCrown(ctx, boss.x - 38 * s, boss.y - 38 * s, 1.6 * s);
       } else if (boss.type === 'owl') {
-        drawOwl(ctx, boss.x, boss.y, 2.3 * s, boss.t, Math.sin(boss.t * 1.3) > .97);
+        drawOwl(ctx, boss.x, boss.y, 2.3 * s, boss.t, Math.sin(boss.t * 1.3) > .97, false);
       } else {
         drawStorm(ctx, boss.x, boss.y, 3 * s, t, true);
         drawCrown(ctx, boss.x, boss.y - 62 * s, 1.8 * s);
@@ -824,22 +927,36 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
         ctx.fillStyle = 'rgba(255,216,107,.18)';
         ctx.beginPath(); ctx.arc(ham.x, ham.y - 4 * s, 34 * s, 0, TAU); ctx.fill(); ctx.stroke();
       }
-      drawHamster(ctx, ham.x, ham.y, 1.15 * s, specialT > 0 ? 1 : pouch / SP_NEED, ham.spin, clamp(ham.vy / (900 * s), -.35, .35), hurtT > .9, ham.spit > 0);
+      drawHamster(ctx, ham.x, ham.y, 1.15 * s, specialT > 0 ? 1 : pouch / spNeed, ham.spin, clamp(ham.vy / (900 * s), -.35, .35), hurtT > .9, ham.spit > 0);
       ctx.restore();
     }
-    if (friend) {
-      drawButterfly(ctx, friend.x, friend.y, friend.s * s, t, true);
-      if (honey && !honey.given) drawHoney(ctx, friend.x, friend.y + 26 * friend.s * s, 1.5 * s);
+    for (const f of friends) drawFriend(f, s);
+    if (phase === 'ending') {
+      for (const p of petals) {
+        if (p.seed) drawSeed(ctx, p.x, p.y, 1.1 * s, p.ph);
+        else { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ph); ctx.fillStyle = '#f6c431'; ctx.beginPath(); ctx.ellipse(0, 0, 4 * s, 8 * s, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+      }
+      drawFlower(ctx, W / 2, H * .52 + 125 * s, 1.6 * s, t * .5);
+      ctx.font = '700 26px Galmuri11, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 5; ctx.strokeStyle = '#fffaf0';
+      ctx.strokeText('해바라기 파티 🌻', W / 2, H * .2); ctx.fillStyle = '#c9567f'; ctx.fillText('해바라기 파티 🌻', W / 2, H * .2);
+      ctx.font = '700 14px Galmuri11, sans-serif';
+      const names = ['꽃밭 나비', '대왕 까마귀', '밤 부엉이', '먹구름 대장'];
+      names.forEach((n, i) => {
+        if (endingT < 1.2 + i * .7) return;
+        const y = H * .2 + 34 + i * 22;
+        ctx.strokeText(`${n} · 친구`, W / 2, y); ctx.fillStyle = '#5a3720'; ctx.fillText(`${n} · 친구`, W / 2, y);
+      });
     }
     ctx.restore();
 
     const night = themeOf(stage || 1).fx === 'stars';
-    if (running) {
+    if (running && phase !== 'ending') {
       // 볼주머니 게이지
       const bw = 120 * s, bx = W / 2 - bw / 2, by = 52;
       ctx.fillStyle = 'rgba(255,250,240,.85)'; ctx.fillRect(bx - 2, by - 2, bw + 4, 12);
       ctx.fillStyle = spReady ? (Math.sin(t * 12) > 0 ? '#f6c431' : '#e8574a') : '#e59a3c';
-      ctx.fillRect(bx, by, bw * (specialT > 0 ? specialT / 3 : pouch / SP_NEED), 8);
+      ctx.fillRect(bx, by, bw * (specialT > 0 ? specialT / 3 : pouch / spNeed), 8);
       ctx.font = '700 11px Galmuri11, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       ctx.fillStyle = night ? '#f4efd0' : '#6b5540';
       ctx.fillText(specialT > 0 ? '필살기 중!' : spReady ? '필살기 준비! 🌻' : '볼주머니', W / 2, by + 13);
@@ -885,7 +1002,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   }
 
   function start() {
-    $('title').hidden = true; $('over').hidden = true;
+    $('title').hidden = true; $('over').hidden = true; $('ending').hidden = true;
     reset(); running = true; updateSp();
     showBanner('1단계', THEMES[0].name);
     beep(520, .1, 'square', .05, 2);
@@ -895,9 +1012,10 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     const isBest = seeds > best;
     if (isBest) { best = seeds; store.set(best); }
     $('final').textContent = seeds;
-    $('stats').textContent = `${stage}단계 도달 · 보스 ${bossKills}마리 · 필살기 ${specials}번 · 비행 ${Math.round(dist / S() / 10)}m`;
+    $('stats').textContent = `${stage}단계 도달 · 화해 ${bossKills}번 · 필살기 ${specials}번 · 비행 ${Math.round(dist / S() / 10)}m`;
+    $('ending').hidden = true;
     $('verdict').textContent =
-      bossKills >= 3 ? '하늘의 햄찌 대장 👑' : bossKills >= 1 ? '보스 잡은 용감한 햄찌' :
+      endingSeen ? '모두의 친구 햄찌 🌻' : bossKills >= 3 ? '하늘의 햄찌 대장 👑' : bossKills >= 1 ? '보스랑 화해한 착한 햄찌' :
       seeds >= 150 ? '볼이 빵빵하다' : seeds >= 60 ? '오늘 간식은 넉넉' : '아직 볼이 홀쭉하다';
     $('best2').textContent = isBest ? '새 최고 기록!' : `최고 기록 · 씨앗 ${best}개`;
     drawIcon('icon2', Math.min(1, seeds / 200));
@@ -911,10 +1029,12 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     while (stage < n) { nextStage(); }
     lives = 3; prevTheme = null; themeFade = 1; banner = null; stageT = 0; updateHud();
   }
-  window.__hamster = { startAt, spawnKite() { const r = Math.random; Math.random = () => .75; spawnPattern(); Math.random = r; }, get state() { return { stage, phase, lives, seeds, hy: ham.y, shield, spReady, specialT, friend: !!friend, honeyGiven: !!(honey && honey.given), boss: boss && { type: boss.type, hp: boss.hp, y: boss.y } }; }, fillSp() { pouch = SP_NEED; spReady = true; updateSp(); }, special: () => activateSpecial(), forceBoss() { stageT = STAGE_LEN; } };
+  window.__hamster = { startAt, spawnKite() { const r = Math.random; Math.random = () => .75; spawnPattern(); Math.random = r; }, get state() { return { stage, phase, lives, seeds, hy: ham.y, shield, spReady, specialT, friends: friends.map(f => f.type + (f.giving ? '*' : '')), spNeed, magnet, stormsFriendly, endingSeen, boss: boss && { type: boss.type, hp: boss.hp, y: boss.y } }; }, fillSp() { pouch = spNeed; spReady = true; updateSp(); }, special: () => activateSpecial(), forceBoss() { stageT = STAGE_LEN; }, weakBoss() { if (boss) boss.hp = 1; }, giveAll() { for (const ty of ['butterfly', 'crow', 'owl']) friends.push({ type: ty, x: ham.x, y: ham.y, s: .8, ph: 0, giving: false }); shield = true; magnet = true; spNeed = 18; } };
 
   $('start').onclick = start;
   $('again').onclick = start;
+  $('cont').onclick = continueAfterEnding;
+  $('finish').onclick = end;
   reset();
   requestAnimationFrame(loop);
 })();
