@@ -1,0 +1,29 @@
+{
+  "agent": "보초 (security-cat)",
+  "principle": "least-privilege",
+  "allow": [
+    "security_logs:read",
+    "detection_alerts:read",
+    "service_health:read",
+    "report:create",
+    "operator_ai:notify"
+  ],
+  "propose_only": {
+    "note": "보초는 제안만 하고, 실행은 관리자 승인 후 사람 또는 별도 시스템이 한다.",
+    "actions": [
+      "account:lock",
+      "ip:block",
+      "session:revoke",
+      "password:force_reset"
+    ]
+  },
+  "deny": [
+    "data:delete",
+    "data:write",
+    "config:write",
+    "deploy:*",
+    "permissions:write",
+    "logs:delete",
+    "logs:export_external"
+  ]
+}
