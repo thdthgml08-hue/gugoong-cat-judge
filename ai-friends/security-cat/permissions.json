@@ -1,5 +1,5 @@
 {
-  "agent": "보초 (security-cat)",
+  "agent": "구공이 · AI 보안 전문 (security-cat)",
   "principle": "least-privilege",
   "allow": [
     "security_logs:read",
@@ -9,7 +9,7 @@
     "operator_ai:notify"
   ],
   "propose_only": {
-    "note": "보초는 제안만 하고, 실행은 관리자 승인 후 사람 또는 별도 시스템이 한다.",
+    "note": "구공이는 제안만 하고, 실행은 관리자 승인 후 사람 또는 별도 시스템이 한다.",
     "actions": [
       "account:lock",
       "ip:block",
