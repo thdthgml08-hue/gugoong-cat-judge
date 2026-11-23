@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#eef2ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131a18" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="오늘의 체크">
+<title>오늘의 체크</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<style>
+/* Layout: one narrow column like a paper checklist — date + progress on top, input, list, filters at the foot */
+:root {
+  --bg: #eef2ef;
+  --paper: #ffffff;
+  --ink: #1d2a26;
+  --muted: #66766f;
+  --line: #d8e0dc;
+  --accent: #2f7a62;
+  --accent-soft: #dcece5;
+  --danger: #b4473a;
+  --font: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131a18; --paper: #1b2421; --ink: #e6eeea; --muted: #94a59e;
+    --line: #2c3934; --accent: #6cc4a4; --accent-soft: #1f3a31; --danger: #e48b7f;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 16px; line-height: 1.5;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-user-select: none; user-select: none;
+}
+.wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.date { color: var(--muted); font-size: 13px; letter-spacing: .02em; }
+h1 { font-weight: 800; font-size: 30px; line-height: 1.15; margin: 2px 0 0; letter-spacing: -.02em; }
+.ring { position: relative; width: 64px; height: 64px; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { stroke: var(--line); }
+.ring .bar { stroke: var(--accent); transition: stroke-dashoffset .4s ease; }
+.ring span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+
+form { display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid var(--line); }
+#new-task {
+  flex: 1; min-width: 0; font: inherit; color: var(--ink); background: transparent;
+  border: 0; padding: 10px 8px; outline: none; -webkit-user-select: text; user-select: text;
+}
+#new-task::placeholder { color: var(--muted); }
+.add {
+  font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 0 18px;
+  background: var(--accent); color: var(--paper); cursor: pointer;
+}
+.add:disabled { opacity: .4; cursor: default; }
+
+ul { list-style: none; margin: 0; padding: 0; }
+li {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 56px;
+  border-bottom: 1px solid var(--line);
+  animation: pop .18s ease;
+}
+li:last-child { border-bottom: 0; }
+@keyframes pop { from { transform: translateY(-3px); opacity: .5; } }
+.check {
+  flex: none; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; padding: 0;
+  border: 2px solid var(--line); background: transparent; display: grid; place-items: center;
+  transition: background .15s, border-color .15s;
+}
+.check svg { width: 16px; height: 16px; stroke: var(--paper); stroke-width: 3; fill: none; opacity: 0; }
+li.done .check { background: var(--accent); border-color: var(--accent); }
+li.done .check svg { opacity: 1; }
+.text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+li.done .text { color: var(--muted); text-decoration: line-through; }
+.edit { flex: 1; min-width: 0; font: inherit; color: var(--ink); background: var(--accent-soft); border: 0; border-radius: 6px; padding: 4px 8px; outline: none; -webkit-user-select: text; user-select: text; }
+.del {
+  flex: none; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  width: 36px; height: 36px; border-radius: 10px; font-size: 20px; line-height: 1; opacity: .6;
+}
+.del:active, .del:focus-visible { opacity: 1; color: var(--danger); background: var(--accent-soft); }
+
+.empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+.empty b { display: block; font-size: 18px; color: var(--ink); margin-bottom: 4px; }
+
+footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.filters { display: flex; gap: 4px; }
+.filters button, .clear {
+  font: inherit; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  padding: 6px 12px; border-radius: 999px;
+}
+.filters button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.clear:active { color: var(--danger); }
+.count { font-variant-numeric: tabular-nums; }
+.hint { font-size: 12px; color: var(--muted); text-align: center; margin: 0; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { li { animation: none; } .ring .bar { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="date" id="date"></div>
+      <h1 id="headline">오늘 할 일</h1>
+    </div>
+    <div class="ring" role="img" aria-label="완료율">
+      <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27" fill="none" stroke-width="6"/><circle class="bar" id="bar" cx="32" cy="32" r="27" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.65" stroke-dashoffset="169.65"/></svg>
+      <span id="pct">0%</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <form id="add-form" autocomplete="off">
+      <input id="new-task" maxlength="200" placeholder="할 일을 적어 주세요" aria-label="새 할 일" enterkeyhint="done">
+      <button class="add" id="add-btn" type="submit" disabled>추가</button>
+    </form>
+    <ul id="list"></ul>
+    <div class="empty" id="empty" hidden></div>
+    <footer>
+      <span class="count" id="count"></span>
+      <div class="filters" role="group" aria-label="보기">
+        <button type="button" data-f="all" aria-pressed="true">전체</button>
+        <button type="button" data-f="open" aria-pressed="false">남은 일</button>
+        <button type="button" data-f="done" aria-pressed="false">완료</button>
+      </div>
+      <button type="button" class="clear" id="clear" hidden>완료 지우기</button>
+    </footer>
+  </div>
+  <p class="hint">글자를 길게 누르거나 두 번 누르면 고칠 수 있어요.</p>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const KEY = "today-check:v1";
+  const FKEY = "today-check:filter";
+  let todos = load();
+  let filter = "all";
+  try { filter = localStorage.getItem(FKEY) || "all"; } catch {}
+
+  function load() { try { const v = JSON.parse(localStorage.getItem(KEY) || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(todos)); } catch {} }
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  function setDate() {
+    $("date").textContent = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+  }
+
+  function render() {
+    const shown = todos.filter(t => filter === "all" || (filter === "done" ? t.done : !t.done));
+    $("list").replaceChildren(...shown.map(row));
+    const total = todos.length, done = todos.filter(t => t.done).length, left = total - done;
+    const empty = $("empty");
+    empty.hidden = shown.length > 0;
+    if (!shown.length) {
+      empty.innerHTML = total === 0
+        ? "<b>아직 할 일이 없어요</b>위 칸에 첫 할 일을 적어 보세요."
+        : filter === "done" ? "<b>완료한 일이 아직 없어요</b>하나씩 체크해 봐요."
+        : "<b>다 끝냈어요!</b>오늘 수고 많았어요.";
+    }
+    $("count").textContent = total ? `남은 일 ${left}개 · 완료 ${done}개` : "";
+    $("clear").hidden = done === 0;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    $("pct").textContent = pct + "%";
+    $("bar").style.strokeDashoffset = 169.65 * (1 - pct / 100);
+    $("headline").textContent = total && left === 0 ? "오늘 할 일 끝!" : "오늘 할 일";
+    document.querySelectorAll(".filters button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === filter));
+  }
+
+  function row(t) {
+    const li = document.createElement("li");
+    if (t.done) li.className = "done";
+    const chk = document.createElement("button");
+    chk.className = "check"; chk.type = "button";
+    chk.setAttribute("aria-label", t.done ? "완료 취소" : "완료로 표시");
+    chk.setAttribute("aria-pressed", t.done);
+    chk.innerHTML = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+    chk.onclick = () => { t.done = !t.done; if (navigator.vibrate) navigator.vibrate(10); save(); render(); };
+
+    const txt = document.createElement("span");
+    txt.className = "text"; txt.textContent = t.text;
+    txt.ondblclick = () => startEdit(txt, t);
+    let press;
+    txt.addEventListener("touchstart", () => { press = setTimeout(() => startEdit(txt, t), 500); }, { passive: true });
+    ["touchend", "touchmove", "touchcancel"].forEach(ev => txt.addEventListener(ev, () => clearTimeout(press), { passive: true }));
+
+    const del = document.createElement("button");
+    del.className = "del"; del.type = "button"; del.textContent = "×";
+    del.setAttribute("aria-label", `"${t.text}" 삭제`);
+    del.onclick = () => { todos = todos.filter(x => x !== t); save(); render(); };
+
+    li.append(chk, txt, del);
+    return li;
+  }
+
+  function startEdit(txt, t) {
+    if (!txt.isConnected) return;
+    const inp = document.createElement("input");
+    inp.className = "edit"; inp.value = t.text; inp.maxLength = 200; inp.enterKeyHint = "done";
+    txt.replaceWith(inp); inp.focus(); inp.select();
+    let finished = false;
+    const finish = keep => {
+      if (finished) return; finished = true;
+      const v = inp.value.trim();
+      if (keep && v && v !== t.text) { t.text = v; save(); }
+      render();
+    };
+    inp.onkeydown = e => { if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); };
+    inp.onblur = () => finish(true);
+  }
+
+  const input = $("new-task");
+  input.oninput = () => { $("add-btn").disabled = !input.value.trim(); };
+  $("add-form").onsubmit = e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    todos.push({ id: uid(), text, done: false, createdAt: Date.now() });
+    save();
+    input.value = ""; $("add-btn").disabled = true;
+    if (filter === "done") filter = "all";
+    render(); input.focus();
+  };
+  document.querySelectorAll(".filters button").forEach(b => b.onclick = () => {
+    filter = b.dataset.f;
+    try { localStorage.setItem(FKEY, filter); } catch {}
+    render();
+  });
+  $("clear").onclick = () => { todos = todos.filter(t => !t.done); save(); render(); };
+
+  // 날짜가 바뀐 채로 앱을 다시 열면 날짜 줄을 새로 그림
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setDate(); });
+
+  setDate();
+  render();
+
+  // 웹으로 열었을 때만 오프라인용 서비스 워커 등록 (네이티브 앱은 파일이 이미 기기 안에 있음)
+  if ("serviceWorker" in navigator && location.protocol === "https:" && !window.Capacitor?.isNativePlatform?.()) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

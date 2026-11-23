@@ -1,0 +1,8 @@
+{
+  "appId": "com.todaycheck.app",
+  "appName": "오늘의 체크",
+  "webDir": "www",
+  "backgroundColor": "#eef2ef",
+  "android": { "backgroundColor": "#eef2ef" },
+  "ios": { "contentInset": "never", "backgroundColor": "#eef2ef" }
+}
