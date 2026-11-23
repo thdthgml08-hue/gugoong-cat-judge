@@ -37,6 +37,25 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
 .btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 #ending { background: rgba(255, 246, 228, .78); }
 #ending h1 { color: #c9567f; }
+/* 엔딩 컷신: 그림이 위에서 '쿵' 내려앉고, 머무는 동안 천천히 다가온다 */
+#cut { position: absolute; inset: 0; z-index: 5; overflow: hidden; background: #a9d8f5; }
+#cut .bg { position: absolute; inset: -30px; background-size: cover; background-position: center; filter: blur(16px) saturate(1.1); opacity: .9; transition: background-image .6s; }
+#cut .panel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; }
+#cut .panel img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; box-shadow: 0 0 40px rgba(0,0,0,.12); }
+#cut .panel.on { opacity: 1; animation: kung 1s cubic-bezier(.25,.9,.3,1.15) both; }
+#cut .panel.on img { animation: drift 4s ease-out 1s both; }
+#cut .panel.off { opacity: 0; transition: opacity .7s; }
+@keyframes kung { 0% { opacity: 0; transform: translateY(-16%) scale(1.12); } 55% { opacity: 1; transform: translateY(2%) scale(.97); } 75% { transform: translateY(-1%) scale(1.01); } 100% { opacity: 1; transform: none; } }
+@keyframes drift { from { transform: scale(1); } to { transform: scale(1.045); } }
+#cut.shake { animation: shake .32s; }
+@keyframes shake { 20% { transform: translate(-7px, 4px); } 40% { transform: translate(6px, -3px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(2px, -1px); } }
+#cut .tag { position: absolute; z-index: 2; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); white-space: nowrap;
+  background: rgba(255,250,240,.92); color: #c9567f; font-weight: 700; font-size: 14px; padding: 5px 14px; border-radius: 999px; border: 2px solid #f6a6c1; }
+#cut .hint { position: absolute; z-index: 2; right: max(16px, env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom));
+  font-size: 12px; color: var(--dark); background: rgba(255,250,240,.8); padding: 4px 9px; border-radius: 6px; }
+#cut .next { position: absolute; z-index: 2; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom)); white-space: nowrap; }
+#cut .next:active { transform: translate(-50%, 3px); }
+@media (prefers-reduced-motion: reduce) { #cut .panel.on, #cut .panel.on img, #cut.shake { animation: none; } }
 .best { margin-top: 14px; font-size: 13px; color: var(--soft); }
 .big { font-size: 44px; font-weight: 700; color: var(--dark); margin: 4px 0; }
 .stats { font-size: 14px; color: var(--soft); margin: 0 0 6px; }
@@ -58,6 +77,16 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   <div class="hud"><span id="lives">❤️❤️❤️</span><span id="stagelbl">1단계</span><span><span id="score">0</span><small>씨앗</small></span></div>
 
   <button class="sp" id="sp" hidden aria-label="필살기 쓰기"><span class="ico">🌻</span>필살기</button>
+
+  <div id="cut" hidden>
+    <div class="bg" id="cutbg"></div>
+    <div class="panel"><img src="assets/ending1-1.jpg" alt="나비가 으앙 졌어 하고 우는 장면"></div>
+    <div class="panel"><img src="assets/ending1-2.jpg" alt="햄찌가 우는 나비에게 다가가 손을 내미는 장면"></div>
+    <div class="panel"><img src="assets/ending1-3.jpg" alt="햄찌와 나비가 친구가 된 장면"></div>
+    <span class="tag">엔딩 1 · 꽃밭 나비</span>
+    <span class="hint" id="cuthint">탭하면 다음 ▶</span>
+    <button class="btn next" id="cutnext" hidden>계속 날기 🌻</button>
+  </div>
 
   <div class="overlay" id="title">
     <canvas id="icon1" width="260" height="260"></canvas>
@@ -118,7 +147,13 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     set(v) { try { localStorage.setItem('hamster-seed-best', v); } catch {} },
   };
   let best = store.get();
-  const showBest = () => { $('best1').textContent = best ? `최고 기록 · 씨앗 ${best}개` : '최고 기록 · 아직 없다'; };
+  const endings = {
+    get() { try { return JSON.parse(localStorage.getItem('hamster-endings') || '[]'); } catch { return []; } },
+    add(n) { try { const a = this.get(); if (!a.includes(n)) { a.push(n); localStorage.setItem('hamster-endings', JSON.stringify(a)); } } catch {} },
+  };
+  const showBest = () => {
+    $('best1').textContent = (best ? `최고 기록 · 씨앗 ${best}개` : '최고 기록 · 아직 없다') + (endings.get().includes(1) ? ' · 엔딩 1 ✓' : '');
+  };
   showBest();
 
   // ── 소리 ──
@@ -423,7 +458,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   }
   const spBtn = $('sp');
   function updateSp() {
-    spBtn.hidden = !running || phase === 'ending';
+    spBtn.hidden = !running || phase === 'ending' || phase === 'cutscene';
     spBtn.classList.toggle('ready', spReady);
     spBtn.style.setProperty('--p', Math.round(pouch / spNeed * 100));
   }
@@ -516,7 +551,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     updateHud();
   }
   function activateSpecial() {
-    if (!running || !spReady || specialT > 0) return;
+    if (!running || !spReady || specialT > 0 || phase === 'cutscene' || phase === 'ending') return;
     const s = S();
     spReady = false; pouch = 0; specialT = 3; spShotT = 0; specials++; shake = .4;
     for (const o of things) {
@@ -580,6 +615,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
 
   // ── 진행 ──
   function step(dt) {
+    if (phase === 'cutscene') return;   // 컷신 동안 게임은 멈춤
     t += dt; stageT += dt;
     const s = S();
     themeFade = Math.min(1, themeFade + dt / 1.6);
@@ -712,6 +748,18 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       const a = i * TAU / 14;
       things.push({ kind: 'seed', x: boss.x + Math.cos(a) * 30 * s, y: boss.y + Math.sin(a) * 30 * s });
     }
+    if (type === 'butterfly' && !friends.some(f => f.type === type)) {   // 엔딩 1 컷신
+      pops.push({ x: boss.x, y: boss.y - 60 * s, txt: `이겼다! +${bonus}`, col: info.col, life: 1.8 });
+      boss = null; bullets = []; specialT = 0; holding = false; phase = 'cutscene'; shake = .2;
+      updateHud();
+      setTimeout(() => playCutscene(() => {
+        friends.push({ type, x: ham.x + 36 * s, y: ham.y - 16 * s, s: 1.5, ph: Math.random() * TAU, giving: false });
+        endings.add(1);
+        phase = 'clear'; clearT = 2.4; holding = false;
+        giveGift('butterfly');
+      }), 700);
+      return;
+    }
     if (!friends.some(f => f.type === type)) {
       friends.push({ type, x: boss.x, y: boss.y, s: 2.4, ph: Math.random() * TAU, giving: true });
       pops.push({ x: boss.x, y: boss.y - 60 * s, txt: `화해! +${bonus}`, col: info.col, life: 1.8 });
@@ -756,6 +804,42 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       if (f.giving && Math.hypot(f.x - tx, f.y - ty) < 12 * s) { f.giving = false; giveGift(f.type); }
     }
   }
+
+  // ── 엔딩 1 컷신 ──
+  const cut = $('cut'), panels = [...cut.querySelectorAll('.panel')];
+  let cutIdx = -1, cutTimer = null, cutDone = null;
+  function playCutscene(done) {
+    cutDone = done; cutIdx = -1;
+    panels.forEach(p => { p.className = 'panel'; });
+    $('cutnext').hidden = true; $('cuthint').hidden = false; cut.hidden = false;
+    nextPanel();
+  }
+  function nextPanel() {
+    clearTimeout(cutTimer);
+    if (cutIdx >= panels.length - 1) { $('cutnext').hidden = false; $('cuthint').hidden = true; return; }
+    if (cutIdx >= 0) panels[cutIdx].className = 'panel off';
+    const p = panels[++cutIdx];
+    p.className = 'panel'; void p.offsetWidth; p.className = 'panel on';
+    $('cutbg').style.backgroundImage = `url("${p.querySelector('img').getAttribute('src')}")`;
+    setTimeout(() => {                 // 내려앉는 순간 '쿵'
+      cut.classList.remove('shake'); void cut.offsetWidth; cut.classList.add('shake');
+      beep(85, .3, 'sine', .14, .6); beep(150, .1, 'square', .04, .5);
+      if (navigator.vibrate) navigator.vibrate(40);
+    }, 520);
+    cutTimer = setTimeout(nextPanel, 3400);
+  }
+  function finishCutscene() {
+    if (cut.hidden) return;
+    clearTimeout(cutTimer); cut.hidden = true;
+    const d = cutDone; cutDone = null; if (d) d();
+  }
+  cut.addEventListener('pointerdown', e => { if (e.target.id !== 'cutnext') nextPanel(); });
+  $('cutnext').addEventListener('click', finishCutscene);
+  addEventListener('keydown', e => {
+    if (cut.hidden || !(e.key === ' ' || e.key === 'Enter')) return;
+    e.preventDefault(); holding = false;
+    $('cutnext').hidden ? nextPanel() : finishCutscene();
+  });
 
   // ── 엔딩: 다 같이 해바라기 파티 ──
   function startEnding() {
@@ -1002,7 +1086,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   }
 
   function start() {
-    $('title').hidden = true; $('over').hidden = true; $('ending').hidden = true;
+    $('title').hidden = true; $('over').hidden = true; $('ending').hidden = true; cut.hidden = true; clearTimeout(cutTimer);
     reset(); running = true; updateSp();
     showBanner('1단계', THEMES[0].name);
     beep(520, .1, 'square', .05, 2);
