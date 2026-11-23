@@ -65,6 +65,8 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   box-shadow: 0 4px 0 var(--dark); display: flex; flex-direction: column; align-items: center; justify-content: center;
   line-height: 1.15; touch-action: none; cursor: pointer; opacity: .8; }
 .sp .ico { font-size: 26px; }
+.sp.cool { filter: grayscale(.7); }
+#splbl { font-variant-numeric: tabular-nums; }
 .sp.ready { opacity: 1; background: #f6c431; color: #7a2a24; animation: sp-pulse .55s infinite alternate; }
 .sp:focus-visible { outline: 3px solid #3f6fb5; outline-offset: 3px; }
 @keyframes sp-pulse { to { transform: scale(1.08); box-shadow: 0 0 20px 6px rgba(255,214,90,.9), 0 4px 0 var(--dark); } }
@@ -76,7 +78,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   <canvas id="cv"></canvas>
   <div class="hud"><span id="lives">❤️❤️❤️</span><span id="stagelbl">1단계</span><span><span id="score">0</span><small>씨앗</small></span></div>
 
-  <button class="sp" id="sp" hidden aria-label="필살기 쓰기"><span class="ico">🌻</span>필살기</button>
+  <button class="sp" id="sp" hidden aria-label="필살기 쓰기"><span class="ico">🌻</span><span id="splbl">필살기</span></button>
 
   <div id="cut" hidden>
     <div class="bg" id="cutbg"></div>
@@ -95,10 +97,11 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     <div class="rules">
       <b>누르고 있으면</b> 위로 붕, 떼면 살살 내려간다<br>
       🌰 해바라기씨 +1 · 🌻 해바라기 +10<br>
-      씨앗 25개로 볼주머니 가득 → <b>🌻 필살기!</b> (버튼 · X키)<br>
+      씨앗 25개로 볼주머니 가득 → <b>🌻 필살기!</b> (버튼 · X키, 쓰고 나면 12초 재충전)<br>
       까마귀 · 먹구름 · 연줄 조심 (목숨 3개)<br>
       단계 끝마다 <b>보스</b>! 이기면 화해하고 친구가 돼서 선물을 준다<br>
-      보스전에선 씨앗 껍질을 자동으로 <b>퉤퉤</b> 발사
+      보스전에선 씨앗 껍질을 자동으로 <b>퉤퉤</b> 발사<br>
+      ⚠ 보스 <b>최종 공격</b>은 초록 빈틈으로 피하기!
     </div>
     <button class="btn" id="start">날아라!</button>
     <p class="best" id="best1"></p>
@@ -192,6 +195,13 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     storm:     { make: '먹구름 대장이랑 화해했다!', why: '혼자라서 심술났던 거래…', icon: '🌈', title: '먹구름 대장이 무지개를 줬다!', sub: '목숨 가득 + 먹구름이 더는 안 아프다', col: '#5a6a9a' },
   };
   const STAGE_LEN = 32;
+  // 보스 최종 공격: 경고(warn) 뒤에 크게 한 방. first = 첫 사용까지 초, every = 그 뒤 간격 (체력 60% 아래로 떨어지면 바로)
+  const ULT = {
+    butterfly: { name: '꽃가루 벽', first: 10, every: 16, warn: 2.0, len: 3.6 },
+    crow:      { name: '깃털 폭풍',     first: 8,  every: 12, warn: 1.6, len: 3.3 },
+    owl:       { name: '별빛 고리',     first: 8,  every: 12, warn: 1.6, len: 3.6 },
+    storm:     { name: '천둥 폭풍',     first: 7,  every: 11, warn: 1.5, len: 4.8 },
+  };
 
   // ── 그리기: 햄스터 ──
   function drawHamster(c, x, y, s, cheek, spin, tilt, hurt, spit) {
@@ -433,7 +443,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   // ── 상태 ──
   const S = () => Math.min(W, H * .62) / 360;
   let ham, things, pops, clouds, hills, stars, rain, seeds, flowers, lives, dist, t, spawnT, running, hurtT, pouch, holding, speed;
-  let friends, shield, spReady, specialT, spShotT, specials, spNeed, magnet, stormsFriendly, endingSeen, pendingEnding, endingT, petals;
+  let spCd, friends, shield, spReady, specialT, spShotT, specials, spNeed, magnet, stormsFriendly, endingSeen, pendingEnding, endingT, petals;
   let stage, stageT, phase, clearT, boss, bossKills, shells, bullets, shotT, banner, prevTheme, themeFade, shake;
 
   function reset() {
@@ -441,7 +451,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     things = []; pops = []; shells = []; bullets = []; seeds = 0; flowers = 0; lives = 3; dist = 0; t = 0;
     spawnT = 1; hurtT = 0; pouch = 0; holding = false;
     friends = []; shield = false; spReady = false; specialT = 0; spShotT = 0; specials = 0;
-    spNeed = 25; magnet = false; stormsFriendly = false; endingSeen = false; pendingEnding = false; endingT = 0; petals = [];
+    spCd = 0; spNeed = 25; magnet = false; stormsFriendly = false; endingSeen = false; pendingEnding = false; endingT = 0; petals = [];
     stage = 1; stageT = 0; phase = 'fly'; clearT = 0; boss = null; bossKills = 0; shotT = 0; shake = 0;
     prevTheme = null; themeFade = 1; banner = null;
     clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: Math.random() * H * .6, r: 18 + Math.random() * 22, k: .2 + Math.random() * .3 }));
@@ -461,7 +471,11 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     spBtn.hidden = !running || phase === 'ending' || phase === 'cutscene';
     spBtn.classList.toggle('ready', spReady);
     spBtn.style.setProperty('--p', Math.round(pouch / spNeed * 100));
+    spBtn.classList.toggle('cool', spCd > 0);
+    const lbl = specialT > 0 ? `${specialT.toFixed(1)}초` : spCd > 0 ? `⏳ ${Math.ceil(spCd)}초` : spReady ? '필살기!' : '필살기';
+    if ($('splbl').textContent !== lbl) $('splbl').textContent = lbl;
   }
+  const SP_TIME = 3, SP_COOL = 12;   // 필살기 지속 3초, 끝난 뒤 12초 재충전
   const hasFriend = type => friends.some(f => f.type === type && !f.giving);
   function showBanner(txt, sub, col = '#5a3720') { banner = { txt, sub, col, life: 2.4 }; }
 
@@ -491,27 +505,35 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       spawnT = 2.2 + Math.random();
       return;
     }
+    // 장애물 비율: 1단계 25% · 2단계 35% · 그 뒤 45%. 1단계엔 먹구름이 없고 까마귀도 햄찌를 노리지 않음
+    const obs = stage === 1 ? .25 : stage === 2 ? .35 : .45;
     const r = Math.random();
-    if (r < .3) {
-      for (let i = 0; i < 6; i++) things.push({ kind: 'seed', x: x0 + i * 30 * s, y: cy });
-    } else if (r < .52) {
-      for (let i = 0; i < 9; i++) things.push({ kind: 'seed', x: x0 + i * 28 * s, y: clamp(cy + Math.sin(i * .7) * 50 * s, top, bot) });
-    } else if (r < .7) {
-      things.push({ kind: 'flower', x: x0 + 40 * s, y: cy });
-      for (let i = 0; i < 8; i++) { const a = i * TAU / 8; things.push({ kind: 'seed', x: x0 + 40 * s + Math.cos(a) * 42 * s, y: cy + Math.sin(a) * 42 * s }); }
-    } else if (r < .8) {     // 연: 줄이 땅까지 이어져 있어서 위로 넘어가야 함
-      const mid = (top + bot) / 2, ky = mid + Math.random() * (bot - 60 * s - mid);
-      things.push({ kind: 'kite', x: x0 + 20, y: ky, base: ky, ph: Math.random() * TAU, col: KITE_COLORS[Math.floor(Math.random() * KITE_COLORS.length)] });
-      for (let i = 0; i < 7; i++) { const a = Math.PI + i * Math.PI / 6; things.push({ kind: 'seed', x: x0 + 20 + Math.cos(a) * 60 * s, y: ky + Math.sin(a) * 70 * s }); }
-    } else if (r < .8 + .12 + level * .06) {
-      const crowY = Math.random() < .6 ? ham.y : cy;
-      things.push({ kind: 'crow', x: x0, y: crowY, base: crowY, ph: Math.random() * TAU, vx: 60 + level * 60 });
-      const sy = crowY < (top + bot) / 2 ? crowY + 70 * s : crowY - 70 * s;
-      for (let i = 0; i < 4; i++) things.push({ kind: 'seed', x: x0 + i * 26 * s, y: sy });
+    if (r < 1 - obs) {
+      const rr = r / (1 - obs);
+      if (rr < .4) {
+        for (let i = 0; i < 6; i++) things.push({ kind: 'seed', x: x0 + i * 30 * s, y: cy });
+      } else if (rr < .72) {
+        for (let i = 0; i < 9; i++) things.push({ kind: 'seed', x: x0 + i * 28 * s, y: clamp(cy + Math.sin(i * .7) * 50 * s, top, bot) });
+      } else {
+        things.push({ kind: 'flower', x: x0 + 40 * s, y: cy });
+        for (let i = 0; i < 8; i++) { const a = i * TAU / 8; things.push({ kind: 'seed', x: x0 + 40 * s + Math.cos(a) * 42 * s, y: cy + Math.sin(a) * 42 * s }); }
+      }
     } else {
-      const y = Math.random() < .5 ? top + 30 : bot - 10;
-      things.push({ kind: 'storm', x: x0 + 20, y });
-      for (let i = 0; i < 5; i++) things.push({ kind: 'seed', x: x0 + i * 28 * s, y: (top + bot) / 2 + (y < (top + bot) / 2 ? 40 : -40) });
+      const ro = (r - (1 - obs)) / obs;
+      if (ro < (stage === 1 ? .55 : .35)) {     // 연: 줄이 땅까지 이어져 있어서 위로 넘어가야 함
+        const mid = (top + bot) / 2, ky = mid + Math.random() * (bot - 60 * s - mid);
+        things.push({ kind: 'kite', x: x0 + 20, y: ky, base: ky, ph: Math.random() * TAU, col: KITE_COLORS[Math.floor(Math.random() * KITE_COLORS.length)] });
+        for (let i = 0; i < 7; i++) { const a = Math.PI + i * Math.PI / 6; things.push({ kind: 'seed', x: x0 + 20 + Math.cos(a) * 60 * s, y: ky + Math.sin(a) * 70 * s }); }
+      } else if (stage === 1 || ro < .7) {
+        const crowY = stage > 1 && Math.random() < .6 ? ham.y : cy;
+        things.push({ kind: 'crow', x: x0, y: crowY, base: crowY, ph: Math.random() * TAU, vx: (stage === 1 ? 30 : 60) + level * 60 });
+        const sy = crowY < (top + bot) / 2 ? crowY + 70 * s : crowY - 70 * s;
+        for (let i = 0; i < 4; i++) things.push({ kind: 'seed', x: x0 + i * 26 * s, y: sy });
+      } else {
+        const y = Math.random() < .5 ? top + 30 : bot - 10;
+        things.push({ kind: 'storm', x: x0 + 20, y });
+        for (let i = 0; i < 5; i++) things.push({ kind: 'seed', x: x0 + i * 28 * s, y: (top + bot) / 2 + (y < (top + bot) / 2 ? 40 : -40) });
+      }
     }
     spawnT = (1.1 + Math.random() * .7) / (1 + level * .6);
   }
@@ -529,7 +551,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   function startBoss() {
     const type = bossTypeOf(stage), info = BOSS_INFO[type], loop = Math.max(0, Math.floor((stage - 2) / 3));
     const hp = Math.round(info.hp * (1 + loop * .5));
-    boss = { type, name: info.name, hp, max: hp, r: info.r, x: W + 120, y: H * .45, t: 0, cd: 1.6, n: 0, hit: 0, loop };
+    boss = { type, name: info.name, hp, max: hp, r: info.r, x: W + 120, y: H * .45, t: 0, cd: 1.6, n: 0, hit: 0, loop, ultIn: ULT[type].first, ult: null };
     phase = 'boss'; shotT = .6;
     showBanner('⚠ 보스 등장!', info.name, '#b1544c');
     beep(200, .4, 'sawtooth', .06, 1.6);
@@ -553,7 +575,8 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   function activateSpecial() {
     if (!running || !spReady || specialT > 0 || phase === 'cutscene' || phase === 'ending') return;
     const s = S();
-    spReady = false; pouch = 0; specialT = 3; spShotT = 0; specials++; shake = .4;
+    spReady = false; pouch = 0; specialT = SP_TIME; spShotT = 0; specials++; shake = .4;
+    if (boss) boss.ult = null;   // 보스 최종 공격도 끊어버림
     for (const o of things) {
       if (o.kind === 'crow' || o.kind === 'storm' || o.kind === 'kite') {
         pops.push({ x: o.x, y: o.y - 20 * s, txt: '씨앗으로 변신!', col: '#c98a1e', life: 1 });
@@ -582,6 +605,17 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     const sp = b.type === 'crow' ? .9 : b.type === 'owl' ? .6 : b.type === 'butterfly' ? .7 : .5;
     b.y = mid + Math.sin(b.t * sp * (1 + b.loop * .2)) * amp * (b.type === 'owl' ? .8 : 1);
     if (b.x > W - 10 || specialT > 0) return;   // 등장 중·필살기 중엔 공격 안 함
+    // 최종 공격
+    const U = ULT[b.type];
+    if (!b.ult) {
+      b.ultIn -= dt;
+      if (b.ultIn <= 0 || (!b.ultUsed && b.hp <= b.max * .6)) {
+        b.ult = { t: -U.warn, n: 0, lastGap: ham.y }; b.ultUsed = true;
+        showBanner(`⚠ ${b.name}의 최종 공격!`, `${U.name} · 빈틈으로 피해!`, '#b1544c');
+        beep(180, .5, 'sawtooth', .07, 2); setTimeout(() => beep(180, .5, 'sawtooth', .07, 2), 600);
+      }
+    }
+    if (b.ult) { updateUlt(b, U, dt); return; }
     b.cd -= dt * (1 + b.loop * .25);
     if (b.cd > 0) return;
     b.n++;
@@ -611,6 +645,44 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
         b.cd = 1.4; beep(420, .06, 'triangle', .04, .6);
       }
     }
+  }
+
+  function updateUlt(b, U, dt) {
+    const s = S(), u = b.ult, top = playTop() - 10, bot = playBot() + 25;
+    u.t += dt;
+    if (u.t < 0) return;                       // 경고 중: 보스가 빨갛게 깜빡임
+    const k = 1 + b.loop * .15;
+    // 다음 안전 지대: 이전 자리에서 너무 멀지 않게 (햄찌가 따라갈 수 있게)
+    const nextGap = range => clamp(u.lastGap + (Math.random() - .5) * 2 * range * s, top + 50 * s, bot - 50 * s);
+    if (b.type === 'butterfly') {              // 연습용: 느린 꽃가루 벽 두 번, 빈틈이 아주 넓다
+      if (u.n < 2 && u.t >= u.n * 1.6) {
+        const gap = nextGap(70); u.lastGap = gap; u.n++;
+        bullets.push({ kind: 'lane', y: gap, half: 105 * s, warn: 1.1, pollen: true });
+      }
+    } else if (b.type === 'crow') {            // 깃털 벽 세 번, 초록 빈틈으로 통과
+      if (u.n < 3 && u.t >= u.n * 1.1) {
+        const gap = u.n === 0 ? nextGap(60) : nextGap(120); u.lastGap = gap; u.n++;
+        bullets.push({ kind: 'lane', y: gap, half: 72 * s / Math.sqrt(k), warn: .85, wall: true });
+      }
+    } else if (b.type === 'owl') {             // 별 고리 세 번, 빈틈이 햄찌 근처에서 살짝 비켜 있음
+      if (u.n < 3 && u.t >= u.n * 1.2) {
+        u.n++;
+        const aim = Math.atan2(ham.y - b.y, ham.x - b.x) + (Math.random() < .5 ? -1 : 1) * (.2 + Math.random() * .15);
+        const N = 20, holeHalf = .38 / Math.sqrt(k);
+        for (let i = 0; i < N; i++) {
+          const a = i * TAU / N; let d = Math.abs(((a - aim) % TAU + TAU + Math.PI) % TAU - Math.PI);
+          if (d < holeHalf) continue;
+          bullets.push({ kind: 'star', x: b.x, y: b.y, vx: Math.cos(a) * 150 * s * k, vy: Math.sin(a) * 150 * s * k, r: 7 * s, rot: 0 });
+        }
+        beep(760, .1, 'sine', .05, 1.5);
+      }
+    } else {                                   // 번개가 화면을 덮고 한 줄만 안전
+      if (u.n < 3 && u.t >= u.n * 1.6) {
+        const gap = nextGap(110); u.lastGap = gap; u.n++;
+        bullets.push({ kind: 'zone', y: gap, half: 72 * s / Math.sqrt(k), warn: 1.15, live: .4 });
+      }
+    }
+    if (u.t >= U.len) { b.ult = null; b.ultIn = U.every; b.cd = 1.2; }
   }
 
   // ── 진행 ──
@@ -649,8 +721,16 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     updateFriends(dt, false);
 
     // 필살기 중: 무적 + 씨앗 부채꼴 연사 + 씨앗 자석
+    if (spCd > 0) spCd = Math.max(0, spCd - dt);
+    if (!spReady && specialT <= 0 && spCd <= 0 && pouch >= spNeed) {
+      spReady = true;
+      pops.push({ x: ham.x, y: ham.y - 50 * s, txt: '필살기 준비!', col: '#d96a1e', life: 1.6 });
+      beep(660, .12, 'square', .06, 2);
+    }
+    updateSp();
     if (specialT > 0) {
       specialT -= dt; spShotT -= dt; bullets = [];
+      if (specialT <= 0) { specialT = 0; spCd = SP_COOL; }
       if (spShotT <= 0) {
         for (let i = -2; i <= 2; i++) shells.push({ x: ham.x + 22 * s, y: ham.y + 3 * s, vy: i * 75 * s, rot: i, big: true });
         spShotT = .08; ham.spit = .1;
@@ -674,11 +754,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       if (o.dead) continue;
       if (o.kind === 'seed' && d < hr + 8 * s) {
         o.dead = true; seeds++; beep(880 + (pouch % 5) * 80, .05);
-        if (!spReady && specialT <= 0 && ++pouch >= spNeed) {
-          spReady = true; pouch = spNeed;
-          pops.push({ x: ham.x, y: ham.y - 50 * s, txt: '볼주머니 가득! 필살기 준비!', col: '#d96a1e', life: 1.8 });
-          beep(660, .12, 'square', .06, 2);
-        }
+        if (specialT <= 0 && pouch < spNeed) pouch++;
         updateHud();
       } else if (o.kind === 'flower' && d < hr + 16 * s) {
         o.dead = true; seeds += 10; flowers++; updateHud();
@@ -719,7 +795,26 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     }
     shells = shells.filter(sh => !sh.dead && sh.x < W + 20 && sh.y > -20 && sh.y < H + 20);
 
+    const newBullets = [];
     for (const b of bullets) {
+      if (b.kind === 'lane') {
+        b.warn -= dt;
+        if (b.warn <= 0) {
+          b.dead = true;
+          const bx = (boss ? boss.x : W) - 40 * s;
+          for (let y = playTop() - 20; y <= playBot() + 40; y += 30 * s) {
+            if (Math.abs(y - b.y) < b.half) continue;
+            newBullets.push(b.pollen ? { kind: 'pollen', x: bx, y, vx: -150 * s, vy: 0, r: 7 * s } : { kind: 'feather', x: bx + (Math.random() - .5) * 10 * s, y, vx: -270 * s, vy: 0, r: 8 * s });
+          }
+          beep(420, .12, 'triangle', .05, .5);
+        }
+        continue;
+      }
+      if (b.kind === 'zone') {
+        if (b.warn > 0) { b.warn -= dt; if (b.warn <= 0) { shake = .3; beep(80, .35, 'sawtooth', .08, .5); } }
+        else { b.live -= dt; if (Math.abs(ham.y - b.y) > b.half - 8 * s) hurt('콰르릉!', 0); if (b.live <= 0) b.dead = true; }
+        continue;
+      }
       if (b.kind === 'beam') {
         if (b.warn > 0) { b.warn -= dt; if (b.warn <= 0) { shake = .2; beep(90, .3, 'sawtooth', .07, .5); } }
         else { b.live -= dt; if (Math.abs(ham.y - b.y) < 20 * s) hurt('지지직!', 0); if (b.live <= 0) b.dead = true; }
@@ -729,7 +824,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       if (Math.hypot(b.x - ham.x, b.y - ham.y) < b.r + hr * .65) { b.dead = true; hurt(b.kind === 'star' ? '별똥 맞았다!' : b.kind === 'drop' ? '차가워!' : b.kind === 'pollen' ? '에취! 꽃가루' : '깃털 공격!', 0); }
       if (b.x < -30 || b.y < -30 || b.y > H + 30 || b.x > W + 30) b.dead = true;
     }
-    bullets = bullets.filter(b => !b.dead);
+    bullets = bullets.filter(b => !b.dead).concat(newBullets);
 
     for (const p of pops) { p.y -= 30 * dt; p.life -= dt; }
     pops = pops.filter(p => p.life > 0);
@@ -939,6 +1034,25 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       }
     }
 
+    // 최종 공격 예고
+    for (const b of bullets) {
+      if (b.kind === 'lane') {
+        ctx.fillStyle = `rgba(90,200,120,${.18 + .12 * Math.sin(t * 20)})`; ctx.fillRect(0, b.y - b.half, W, b.half * 2);
+        ctx.strokeStyle = 'rgba(60,160,90,.8)'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+        ctx.strokeRect(-2, b.y - b.half, W + 4, b.half * 2); ctx.setLineDash([]);
+      } else if (b.kind === 'zone') {
+        const top = 0, bot = H - groundH();
+        if (b.warn > 0) {
+          ctx.fillStyle = `rgba(255,90,70,${.14 + .14 * (Math.sin(t * 28) > 0)})`;
+          ctx.fillRect(0, top, W, b.y - b.half - top); ctx.fillRect(0, b.y + b.half, W, bot - b.y - b.half);
+          ctx.fillStyle = 'rgba(90,200,120,.25)'; ctx.fillRect(0, b.y - b.half, W, b.half * 2);
+          ctx.strokeStyle = 'rgba(60,160,90,.9)'; ctx.lineWidth = 2; ctx.strokeRect(-2, b.y - b.half, W + 4, b.half * 2);
+        } else {
+          ctx.fillStyle = 'rgba(255,247,168,.85)';
+          ctx.fillRect(0, top, W, b.y - b.half - top); ctx.fillRect(0, b.y + b.half, W, bot - b.y - b.half);
+        }
+      }
+    }
     // 번개 빔
     for (const b of bullets) {
       if (b.kind !== 'beam') continue;
@@ -957,6 +1071,10 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     if (boss) {
       ctx.save();
       if (boss.hit > 0) ctx.globalAlpha = .55;
+      if (boss.ult && boss.ult.t < 0) {          // 최종 공격 준비: 붉은 기운
+        ctx.fillStyle = `rgba(255,70,60,${.18 + .15 * Math.sin(t * 18)})`;
+        ctx.beginPath(); ctx.arc(boss.x, boss.y, (boss.r + 18) * s * (1.1 + .1 * Math.sin(t * 9)), 0, TAU); ctx.fill();
+      }
       if (boss.type === 'butterfly') {
         drawButterfly(ctx, boss.x, boss.y, 2.4 * s, boss.t, false);
       } else if (boss.type === 'crow') {
@@ -1040,10 +1158,10 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       const bw = 120 * s, bx = W / 2 - bw / 2, by = 52;
       ctx.fillStyle = 'rgba(255,250,240,.85)'; ctx.fillRect(bx - 2, by - 2, bw + 4, 12);
       ctx.fillStyle = spReady ? (Math.sin(t * 12) > 0 ? '#f6c431' : '#e8574a') : '#e59a3c';
-      ctx.fillRect(bx, by, bw * (specialT > 0 ? specialT / 3 : pouch / spNeed), 8);
+      ctx.fillRect(bx, by, bw * (specialT > 0 ? specialT / SP_TIME : pouch / spNeed), 8);
       ctx.font = '700 11px Galmuri11, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       ctx.fillStyle = night ? '#f4efd0' : '#6b5540';
-      ctx.fillText(specialT > 0 ? '필살기 중!' : spReady ? '필살기 준비! 🌻' : '볼주머니', W / 2, by + 13);
+      ctx.fillText(specialT > 0 ? '필살기 중!' : spReady ? '필살기 준비! 🌻' : spCd > 0 ? `필살기 재충전 ${Math.ceil(spCd)}초` : '볼주머니', W / 2, by + 13);
       // 보스 체력
       if (boss) {
         const hw = W * .62, hx = W / 2 - hw / 2, hy = 84;
@@ -1113,7 +1231,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     while (stage < n) { nextStage(); }
     lives = 3; prevTheme = null; themeFade = 1; banner = null; stageT = 0; updateHud();
   }
-  window.__hamster = { startAt, spawnKite() { const r = Math.random; Math.random = () => .75; spawnPattern(); Math.random = r; }, get state() { return { stage, phase, lives, seeds, hy: ham.y, shield, spReady, specialT, friends: friends.map(f => f.type + (f.giving ? '*' : '')), spNeed, magnet, stormsFriendly, endingSeen, boss: boss && { type: boss.type, hp: boss.hp, y: boss.y } }; }, fillSp() { pouch = spNeed; spReady = true; updateSp(); }, special: () => activateSpecial(), forceBoss() { stageT = STAGE_LEN; }, weakBoss() { if (boss) boss.hp = 1; }, giveAll() { for (const ty of ['butterfly', 'crow', 'owl']) friends.push({ type: ty, x: ham.x, y: ham.y, s: .8, ph: 0, giving: false }); shield = true; magnet = true; spNeed = 18; } };
+  window.__hamster = { startAt, spawnKite() { const r = Math.random; Math.random = () => .75; spawnPattern(); Math.random = r; }, get state() { return { stage, phase, lives, seeds, hy: ham.y, shield, spReady, specialT, friends: friends.map(f => f.type + (f.giving ? '*' : '')), spNeed, magnet, stormsFriendly, endingSeen, boss: boss && { type: boss.type, hp: boss.hp, y: boss.y } }; }, fillSp() { pouch = spNeed; spReady = true; updateSp(); }, special: () => activateSpecial(), forceBoss() { stageT = STAGE_LEN; }, weakBoss() { if (boss) boss.hp = 1; }, ult() { if (boss) boss.ultIn = 0; }, get spCd() { return spCd; }, hold(v) { holding = v; }, get vy() { return ham.vy; }, get ultGap() { return boss && boss.ult ? { t: boss.ult.t, gap: boss.ult.lastGap } : null; }, giveAll() { for (const ty of ['butterfly', 'crow', 'owl']) friends.push({ type: ty, x: ham.x, y: ham.y, s: .8, ph: 0, giving: false }); shield = true; magnet = true; spNeed = 18; } };
 
   $('start').onclick = start;
   $('again').onclick = start;
