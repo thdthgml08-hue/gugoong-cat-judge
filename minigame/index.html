@@ -98,7 +98,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       <b>누르고 있으면</b> 위로 붕, 떼면 살살 내려간다<br>
       🌰 해바라기씨 +1 · 🌻 해바라기 +10<br>
       씨앗 25개로 볼주머니 가득 → <b>🌻 필살기!</b> (버튼 · X키, 쓰고 나면 12초 재충전)<br>
-      까마귀 · 먹구름 · 연줄 조심 (목숨 3개)<br>
+      까마귀 · 먹구름 · 연줄 조심, <b>땅에 떨어져도 하트 −1</b> (목숨 3개)<br>
       단계 끝마다 <b>보스</b>! 이기면 화해하고 친구가 돼서 선물을 준다<br>
       보스전에선 씨앗 껍질을 자동으로 <b>퉤퉤</b> 발사<br>
       ⚠ 보스 <b>최종 공격</b>은 초록 빈틈으로 피하기!
@@ -701,7 +701,11 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     ham.y += ham.vy * dt;
     const top = 95, bot = H - groundH() - 24 * s;
     if (ham.y < top) { ham.y = top; ham.vy = Math.max(0, ham.vy); }
-    if (ham.y > bot) { ham.y = bot; ham.vy = Math.min(0, ham.vy); }
+    if (ham.y > bot) {                 // 땅에 떨어지면 하트 −1 (시작 2.5초는 봐줌), 그리고 통 튀어오름
+      ham.y = bot;
+      if (t > 2.5 && specialT <= 0 && hurtT <= 0 && phase !== 'ending') hurt('쿵! 땅에 떨어졌다', 0);
+      ham.vy = -(hurtT > 1.3 ? 320 : 170) * s;
+    }
     ham.spin += dt * (holding ? 40 : 14);
     ham.spit = Math.max(0, ham.spit - dt);
     if (holding && Math.random() < dt * 8) beep(220 + Math.random() * 40, .03, 'triangle', .012);
@@ -1206,7 +1210,9 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   function start() {
     $('title').hidden = true; $('over').hidden = true; $('ending').hidden = true; cut.hidden = true; clearTimeout(cutTimer);
     reset(); running = true; updateSp();
+    ham.vy = -220 * S();
     showBanner('1단계', THEMES[0].name);
+    pops.push({ x: W / 2, y: H * .62, txt: '꾹 누르고 있으면 붕! 땅에 닿으면 아야!', col: '#5a3720', life: 3 });
     beep(520, .1, 'square', .05, 2);
   }
   function end() {
