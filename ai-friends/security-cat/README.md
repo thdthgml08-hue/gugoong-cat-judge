@@ -29,6 +29,7 @@
 
 | 파일 | 내용 |
 | --- | --- |
+| [`server/`](server/) | **실제로 돌아가는 검열·보안 서버** (글·채팅·이미지 검열, 로그 분석, 코드 점검) |
 | [`system-prompt.md`](system-prompt.md) | 보안전문 구공이에게 넣을 시스템 프롬프트 |
 | [`permissions.json`](permissions.json) | 허용·제안·금지 행동 목록 |
 | [`report-template.md`](report-template.md) | 관리자에게 넘길 보고서 양식 |
