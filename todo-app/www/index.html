@@ -22,6 +22,13 @@
   --accent: #2f7a62;
   --accent-soft: #dcece5;
   --danger: #b4473a;
+  --bot-body: #fbfdfc;
+  --bot-line: #2f7a62;
+  --bot-screen: #1d2a26;
+  --bot-glow: #7fe3bf;
+  --bot-cheek: #f4a7b9;
+  --bubble: #1d2a26;
+  --bubble-ink: #ffffff;
   --font: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   color-scheme: light;
 }
@@ -29,6 +36,8 @@
   :root {
     --bg: #131a18; --paper: #1b2421; --ink: #e6eeea; --muted: #94a59e;
     --line: #2c3934; --accent: #6cc4a4; --accent-soft: #1f3a31; --danger: #e48b7f;
+    --bot-body: #e9f2ee; --bot-line: #6cc4a4; --bot-screen: #0f1513; --bot-glow: #8ff0cc; --bot-cheek: #f4a7b9;
+    --bubble: #e6eeea; --bubble-ink: #131a18;
     color-scheme: dark;
   }
 }
@@ -108,6 +117,46 @@ footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: s
 .hint { font-size: 12px; color: var(--muted); text-align: center; margin: 0; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [hidden] { display: none !important; }
+/* AI 친구 '삐익이' */
+.head-right { display: flex; align-items: center; gap: 10px; }
+.sound { border: 1px solid var(--line); background: var(--paper); color: var(--muted); width: 36px; height: 36px; border-radius: 12px; font-size: 16px; cursor: pointer; padding: 0; }
+.bot .body, .bot .head, .bot .ear, .bot .hand { fill: var(--bot-body); stroke: var(--bot-line); stroke-width: 3; }
+.bot .arm, .bot .stick { stroke: var(--bot-line); stroke-width: 3; stroke-linecap: round; fill: none; }
+.bot .screen { fill: var(--bot-screen); }
+.bot .face { stroke: var(--bot-glow); stroke-width: 3.5; stroke-linecap: round; fill: none; }
+.bot .cheek { fill: var(--bot-cheek); opacity: .85; }
+.bot .bulb { fill: var(--bot-cheek); }
+.bot .heart { fill: var(--bot-cheek); }
+#buddy {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); z-index: 20;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transform: translate(-50%, 0); pointer-events: none;
+}
+#buddy.show { animation: buddy-in 1.8s cubic-bezier(.2,.9,.3,1.2) both; }
+#buddy .bot { width: 96px; height: 112px; }
+#buddy.show .bot { animation: wiggle .5s ease-in-out .35s 2; }
+#buddy.show .bulb { animation: blink .3s steps(2) .2s 5; }
+.bubble {
+  position: relative; background: var(--bubble); color: var(--bubble-ink);
+  padding: 8px 16px; border-radius: 16px; font-weight: 800; font-size: 20px; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+.bubble small { display: block; text-align: center; font-size: 12px; font-weight: 700; opacity: .75; letter-spacing: .08em; }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 2px; }
+@keyframes buddy-in {
+  0% { transform: translate(-50%, 140%); opacity: 0; }
+  18% { transform: translate(-50%, -6%); opacity: 1; }
+  26%, 82% { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, 140%); opacity: 0; }
+}
+@keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes blink { to { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) {
+  #buddy.show { animation: buddy-fade 1.8s both; }
+  #buddy.show .bot, #buddy.show .bulb { animation: none; }
+  @keyframes buddy-fade { 0%, 100% { opacity: 0; } 10%, 85% { opacity: 1; } }
+}
+
 @media (prefers-reduced-motion: reduce) { li { animation: none; } .ring .bar { transition: none; } }
 </style>
 </head>
@@ -118,9 +167,12 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <div class="date" id="date"></div>
       <h1 id="headline">오늘 할 일</h1>
     </div>
+    <div class="head-right">
+    <button type="button" class="sound" id="sound" aria-label="효과음 끄기">🔊</button>
     <div class="ring" role="img" aria-label="완료율">
       <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27" fill="none" stroke-width="6"/><circle class="bar" id="bar" cx="32" cy="32" r="27" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.65" stroke-dashoffset="169.65"/></svg>
       <span id="pct">0%</span>
+    </div>
     </div>
   </header>
 
@@ -143,6 +195,26 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   </div>
   <p class="hint">글자를 길게 누르거나 두 번 누르면 고칠 수 있어요.</p>
 </div>
+<div id="buddy" hidden aria-live="polite">
+  <div class="bubble"><span id="buddy-say">장하다!!!</span><small id="buddy-sub">삐익!</small></div>
+  <svg class="bot" viewBox="0 0 120 140" aria-hidden="true">
+    <line class="stick" x1="60" y1="24" x2="60" y2="10"/>
+    <circle class="bulb" cx="60" cy="8" r="6"/>
+    <rect class="ear" x="8" y="44" width="12" height="22" rx="5"/>
+    <rect class="ear" x="100" y="44" width="12" height="22" rx="5"/>
+    <rect class="head" x="18" y="24" width="84" height="64" rx="24"/>
+    <rect class="screen" x="28" y="35" width="64" height="42" rx="15"/>
+    <path class="face" d="M40 58 q6 -9 12 0 M68 58 q6 -9 12 0 M53 66 q7 6 14 0"/>
+    <ellipse class="cheek" cx="38" cy="68" rx="5" ry="3"/>
+    <ellipse class="cheek" cx="82" cy="68" rx="5" ry="3"/>
+    <path class="arm" d="M40 100 L22 80 M80 100 L98 80"/>
+    <circle class="hand" cx="20" cy="77" r="6"/>
+    <circle class="hand" cx="100" cy="77" r="6"/>
+    <rect class="body" x="38" y="90" width="44" height="38" rx="15"/>
+    <path class="heart" d="M60 118 l-8 -8 a4.5 4.5 0 0 1 8 -5 a4.5 4.5 0 0 1 8 5 z"/>
+  </svg>
+</div>
+
 
 <script>
 (() => {
@@ -190,7 +262,12 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     chk.setAttribute("aria-label", t.done ? "완료 취소" : "완료로 표시");
     chk.setAttribute("aria-pressed", t.done);
     chk.innerHTML = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
-    chk.onclick = () => { t.done = !t.done; if (navigator.vibrate) navigator.vibrate(10); save(); render(); };
+    chk.onclick = () => {
+      t.done = !t.done;
+      if (navigator.vibrate) navigator.vibrate(10);
+      save(); render();
+      if (t.done) cheer(todos.every(x => x.done));
+    };
 
     const txt = document.createElement("span");
     txt.className = "text"; txt.textContent = t.text;
@@ -245,6 +322,62 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   // 날짜가 바뀐 채로 앱을 다시 열면 날짜 줄을 새로 그림
   document.addEventListener("visibilitychange", () => { if (!document.hidden) setDate(); });
+
+
+  // ---- AI 친구 '삐익이': 체크하면 튀어나와 칭찬 + 삐익 효과음 ----
+  const SKEY = "today-check:sound";
+  let soundOn = true;
+  try { soundOn = localStorage.getItem(SKEY) !== "off"; } catch {}
+  let audio = null;
+  const PRAISE = ["장하다!!!"];
+
+  function paintSound() {
+    $("sound").textContent = soundOn ? "🔊" : "🔇";
+    $("sound").setAttribute("aria-label", soundOn ? "효과음 끄기" : "효과음 켜기");
+  }
+  $("sound").onclick = () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SKEY, soundOn ? "on" : "off"); } catch {}
+    paintSound();
+    if (soundOn) beep([[880, 0, .08]]);
+  };
+
+  // 음 [주파수, 시작(초), 길이(초)] 목록을 짧은 로봇 소리로 재생
+  function beep(notes) {
+    if (!soundOn) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === "suspended") audio.resume();
+      const now = audio.currentTime;
+      for (const [freq, at, len, to] of notes) {
+        const osc = audio.createOscillator(), gain = audio.createGain();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(freq, now + at);
+        if (to) osc.frequency.exponentialRampToValueAtTime(to, now + at + len);
+        gain.gain.setValueAtTime(0.0001, now + at);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + at + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + at + len);
+        osc.connect(gain).connect(audio.destination);
+        osc.start(now + at); osc.stop(now + at + len + 0.02);
+      }
+    } catch {}
+  }
+
+  let hideTimer;
+  function cheer(allDone) {
+    const buddy = $("buddy");
+    $("buddy-say").textContent = allDone ? "다 끝냈다!!!" : PRAISE[Math.floor(Math.random() * PRAISE.length)];
+    $("buddy-sub").textContent = allDone ? "삐빅 삐빅! 오늘 최고!" : "삐익!";
+    buddy.hidden = false;
+    buddy.classList.remove("show"); void buddy.offsetWidth; buddy.classList.add("show");
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { buddy.hidden = true; buddy.classList.remove("show"); }, 1850);
+    // 삐- 익! (짧은 음 하나 + 위로 올라가는 음)
+    beep(allDone
+      ? [[988, 0, .09], [1319, .11, .09], [1568, .22, .09], [2093, .33, .22, 2637]]
+      : [[1047, 0, .09], [1175, .12, .2, 1976]]);
+  }
+  paintSound();
 
   setDate();
   render();
