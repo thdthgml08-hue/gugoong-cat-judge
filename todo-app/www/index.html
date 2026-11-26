@@ -1,10 +1,13 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-skin="pink">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#eef2ef" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#131a18" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fdf0f3" id="theme-color">
+<script>
+  // 고른 테마를 그리기 전에 적용 (처음엔 핑크)
+  try { document.documentElement.dataset.skin = localStorage.getItem("today-check:skin") || "pink"; } catch {}
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="오늘의 체크">
 <title>오늘의 체크</title>
@@ -32,8 +35,42 @@
   --font: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   color-scheme: light;
 }
+/* 테마 4종: sage(세이지) · pink(말랑 핑크, 기본) · diary(다이어리 노트) · night(밤하늘) */
+:root[data-skin="pink"] {
+  --bg: #fdf0f3; --paper: #ffffff; --ink: #3a2530; --muted: #8a6f7b; --line: #f3d9e1;
+  --accent: #e46a92; --accent-soft: #fde1ea; --danger: #c0392b;
+  --bot-body: #ffffff; --bot-line: #e46a92; --bot-screen: #3a2530; --bot-glow: #ffd2e1; --bot-cheek: #ff9fbd;
+  --bubble: #e46a92; --bubble-ink: #ffffff;
+}
+:root[data-skin="diary"] {
+  --bg: #f6f1e4; --paper: #fffdf6; --ink: #2e2a22; --muted: #7c7465; --line: #e6dcc6;
+  --accent: #3f6db3; --accent-soft: #fff1a8; --danger: #b4473a;
+  --bot-body: #fffdf6; --bot-line: #3f6db3; --bot-screen: #2e2a22; --bot-glow: #ffe066; --bot-cheek: #ff9e9e;
+  --bubble: #3f6db3; --bubble-ink: #ffffff; --marker: #fff1a8;
+}
+:root[data-skin="night"] {
+  --bg: #141a33; --paper: #1d2546; --ink: #eef0ff; --muted: #9aa3cf; --line: #2c3663;
+  --accent: #ffd36b; --accent-soft: #2e3870; --danger: #ff8f8f;
+  --bot-body: #eef0ff; --bot-line: #ffd36b; --bot-screen: #0d1228; --bot-glow: #ffd36b; --bot-cheek: #ff9fbd;
+  --bubble: #ffd36b; --bubble-ink: #141a33;
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root[data-skin="pink"] {
+    --bg: #22161b; --paper: #2d1d24; --ink: #fbe9ef; --muted: #c49aac; --line: #4a2f3a;
+    --accent: #ff8fb3; --accent-soft: #4a2433; --danger: #ff8f8f;
+    --bot-body: #fbe9ef; --bot-line: #ff8fb3; --bot-screen: #22161b; --bot-glow: #ffc2d6;
+    --bubble: #ff8fb3; --bubble-ink: #22161b;
+    color-scheme: dark;
+  }
+  :root[data-skin="diary"] {
+    --bg: #1e1b15; --paper: #27231b; --ink: #f1eadb; --muted: #b3a88f; --line: #3d3628;
+    --accent: #8fb2ff; --accent-soft: #4d4420; --danger: #e48b7f;
+    --bot-body: #f1eadb; --bot-line: #8fb2ff; --bot-screen: #1e1b15;
+    --bubble: #8fb2ff; --bubble-ink: #1e1b15; --marker: #6b5d1f;
+    color-scheme: dark;
+  }
+  :root[data-skin="sage"] {
     --bg: #131a18; --paper: #1b2421; --ink: #e6eeea; --muted: #94a59e;
     --line: #2c3934; --accent: #6cc4a4; --accent-soft: #1f3a31; --danger: #e48b7f;
     --bot-body: #e9f2ee; --bot-line: #6cc4a4; --bot-screen: #0f1513; --bot-glow: #8ff0cc; --bot-cheek: #f4a7b9;
@@ -118,7 +155,30 @@ footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: s
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [hidden] { display: none !important; }
 /* AI 친구 '삐익이' */
-.head-right { display: flex; align-items: center; gap: 10px; }
+.head-right { display: flex; align-items: center; gap: 8px; }
+/* 테마별 모양 */
+[data-skin="pink"] .check { border-radius: 50%; }
+[data-skin="pink"] .card { border-radius: 24px; }
+[data-skin="diary"] .card { border-radius: 6px; }
+[data-skin="diary"] li { border-bottom-style: dashed; }
+[data-skin="diary"] li.done .text { text-decoration: none; color: var(--ink); background: linear-gradient(transparent 55%, var(--marker) 55%); }
+[data-skin="night"] body {
+  background-image: radial-gradient(1.5px 1.5px at 12% 8%, #fff8 50%, transparent), radial-gradient(1.5px 1.5px at 78% 14%, #fff8 50%, transparent),
+    radial-gradient(1px 1px at 40% 92%, #fff6 50%, transparent), radial-gradient(1.5px 1.5px at 90% 70%, #fff6 50%, transparent),
+    radial-gradient(1px 1px at 20% 60%, #fff5 50%, transparent), radial-gradient(1px 1px at 62% 40%, #fff4 50%, transparent);
+  background-attachment: fixed;
+}
+[data-skin="night"] li.done .check svg { stroke: var(--bg); }
+
+/* 테마 고르기 */
+.skins { display: flex; gap: 8px; justify-content: space-between; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+.skins button {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font: inherit; font-size: 12px; color: var(--muted); background: transparent; border: 0; border-radius: 12px; padding: 8px 2px; cursor: pointer;
+}
+.skins button[aria-pressed="true"] { color: var(--ink); font-weight: 700; background: var(--accent-soft); }
+.swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(0,0,0,.08); }
+
 .sound { border: 1px solid var(--line); background: var(--paper); color: var(--muted); width: 36px; height: 36px; border-radius: 12px; font-size: 16px; cursor: pointer; padding: 0; }
 .bot .body, .bot .head, .bot .ear, .bot .hand { fill: var(--bot-body); stroke: var(--bot-line); stroke-width: 3; }
 .bot .arm, .bot .stick { stroke: var(--bot-line); stroke-width: 3; stroke-linecap: round; fill: none; }
@@ -191,6 +251,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <h1 id="headline">오늘 할 일</h1>
     </div>
     <div class="head-right">
+    <button type="button" class="sound" id="skin-btn" aria-label="테마 고르기" aria-expanded="false" aria-controls="skins">🎨</button>
     <button type="button" class="sound" id="sound" aria-label="효과음 끄기">🔊</button>
     <div class="ring" role="img" aria-label="완료율">
       <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27" fill="none" stroke-width="6"/><circle class="bar" id="bar" cx="32" cy="32" r="27" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.65" stroke-dashoffset="169.65"/></svg>
@@ -198,6 +259,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </div>
     </div>
   </header>
+
+  <div class="skins" id="skins" role="group" aria-label="테마" hidden>
+    <button type="button" data-skin="pink"><span class="swatch" style="background:linear-gradient(135deg,#fde1ea 50%,#e46a92 50%)"></span>말랑 핑크</button>
+    <button type="button" data-skin="sage"><span class="swatch" style="background:linear-gradient(135deg,#eef2ef 50%,#2f7a62 50%)"></span>세이지</button>
+    <button type="button" data-skin="diary"><span class="swatch" style="background:linear-gradient(135deg,#fff1a8 50%,#3f6db3 50%)"></span>다이어리</button>
+    <button type="button" data-skin="night"><span class="swatch" style="background:linear-gradient(135deg,#141a33 50%,#ffd36b 50%)"></span>밤하늘</button>
+  </div>
 
   <div class="card">
     <form id="add-form" autocomplete="off">
@@ -426,6 +494,25 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       : [[1047, 0, .09], [1175, .12, .2, 1976]]);
   }
   paintSound();
+
+  // ---- 테마 고르기 ----
+  const SKIN_KEY = "today-check:skin";
+  function applySkin(name) {
+    document.documentElement.dataset.skin = name;
+    document.querySelectorAll(".skins button").forEach(b => b.setAttribute("aria-pressed", b.dataset.skin === name));
+    $("theme-color").content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  }
+  $("skin-btn").onclick = () => {
+    const panel = $("skins");
+    panel.hidden = !panel.hidden;
+    $("skin-btn").setAttribute("aria-expanded", !panel.hidden);
+  };
+  document.querySelectorAll(".skins button").forEach(b => b.onclick = () => {
+    applySkin(b.dataset.skin);
+    try { localStorage.setItem(SKIN_KEY, b.dataset.skin); } catch {}
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => applySkin(document.documentElement.dataset.skin));
+  applySkin(document.documentElement.dataset.skin || "pink");
 
   setDate();
   render();
