@@ -149,11 +149,34 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   26%, 82% { transform: translate(-50%, 0); opacity: 1; }
   100% { transform: translate(-50%, 140%); opacity: 0; }
 }
+
+#buddy .face-wow { display: none; }
+#buddy.wow .face-wow { display: inline; }
+#buddy.wow .face-happy { display: none; }
+#buddy.show.wow { animation: buddy-in-long 3.4s cubic-bezier(.2,.9,.3,1.2) both; }
+#buddy.show.wow .bot { animation: hop .42s ease-in-out .5s 5; }
+#buddy.show.wow .bulb { animation: blink .25s steps(2) .2s 12; }
+@keyframes buddy-in-long {
+  0% { transform: translate(-50%, 140%); opacity: 0; }
+  10% { transform: translate(-50%, -6%); opacity: 1; }
+  14%, 90% { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, 140%); opacity: 0; }
+}
+@keyframes hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-18px) rotate(-4deg); } 55% { transform: translateY(-18px) rotate(4deg); } }
+.confetti { position: fixed; z-index: 19; pointer-events: none; font-size: 20px; line-height: 1; left: 0; top: 0;
+  animation: pop-out 1.6s cubic-bezier(.15,.7,.3,1) forwards; }
+@keyframes pop-out {
+  0% { transform: translate(var(--x0), var(--y0)) scale(.4) rotate(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--x1), var(--y1)) scale(1) rotate(var(--r)); opacity: 0; }
+}
 @keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
 @keyframes blink { to { opacity: .2; } }
 @media (prefers-reduced-motion: reduce) {
-  #buddy.show { animation: buddy-fade 1.8s both; }
-  #buddy.show .bot, #buddy.show .bulb { animation: none; }
+  #buddy.show, #buddy.show.wow { animation: buddy-fade 1.8s both; }
+  #buddy.show.wow { animation-duration: 3.4s; }
+  #buddy.show .bot, #buddy.show .bulb, #buddy.show.wow .bot, #buddy.show.wow .bulb { animation: none; }
+  .confetti { display: none; }
   @keyframes buddy-fade { 0%, 100% { opacity: 0; } 10%, 85% { opacity: 1; } }
 }
 
@@ -204,7 +227,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <rect class="ear" x="100" y="44" width="12" height="22" rx="5"/>
     <rect class="head" x="18" y="24" width="84" height="64" rx="24"/>
     <rect class="screen" x="28" y="35" width="64" height="42" rx="15"/>
-    <path class="face" d="M40 58 q6 -9 12 0 M68 58 q6 -9 12 0 M53 66 q7 6 14 0"/>
+    <path class="face face-happy" d="M40 58 q6 -9 12 0 M68 58 q6 -9 12 0 M53 66 q7 6 14 0"/>
+    <g class="face face-wow"><circle cx="45" cy="53" r="5.5"/><circle cx="75" cy="53" r="5.5"/><path d="M54 61 v10 h12 v-10 M54 66 h12"/></g>
     <ellipse class="cheek" cx="38" cy="68" rx="5" ry="3"/>
     <ellipse class="cheek" cx="82" cy="68" rx="5" ry="3"/>
     <path class="arm" d="M40 100 L22 80 M80 100 L98 80"/>
@@ -364,14 +388,38 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   }
 
   let hideTimer;
+  // 다 끝냈을 때: 삐익이 머리 위에서 하트·별 꽃가루가 팡
+  function confetti() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const pieces = ["💗", "⭐", "✨", "💚", "🩷", "🌟"];
+    const cx = innerWidth / 2, cy = innerHeight - 150;
+    for (let i = 0; i < 28; i++) {
+      const el = document.createElement("span");
+      el.className = "confetti";
+      el.textContent = pieces[i % pieces.length];
+      const angle = -Math.PI / 2 + (Math.random() - .5) * Math.PI * 1.3;
+      const dist = 120 + Math.random() * 180;
+      el.style.setProperty("--x0", cx - 10 + "px");
+      el.style.setProperty("--y0", cy + "px");
+      el.style.setProperty("--x1", cx - 10 + Math.cos(angle) * dist + "px");
+      el.style.setProperty("--y1", cy + Math.sin(angle) * dist + 60 + "px");
+      el.style.setProperty("--r", (Math.random() * 360 - 180) + "deg");
+      el.style.animationDelay = (Math.random() * .25) + "s";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2000);
+    }
+  }
   function cheer(allDone) {
     const buddy = $("buddy");
     $("buddy-say").textContent = allDone ? "다 끝냈다!!!" : PRAISE[Math.floor(Math.random() * PRAISE.length)];
     $("buddy-sub").textContent = allDone ? "삐빅 삐빅! 오늘 최고!" : "삐익!";
     buddy.hidden = false;
-    buddy.classList.remove("show"); void buddy.offsetWidth; buddy.classList.add("show");
+    buddy.classList.remove("show", "wow"); void buddy.offsetWidth;
+    buddy.classList.add("show");
+    buddy.classList.toggle("wow", allDone);
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => { buddy.hidden = true; buddy.classList.remove("show"); }, 1850);
+    hideTimer = setTimeout(() => { buddy.hidden = true; buddy.classList.remove("show", "wow"); }, allDone ? 3450 : 1850);
+    if (allDone) confetti();
     // 삐- 익! (짧은 음 하나 + 위로 올라가는 음)
     beep(allDone
       ? [[988, 0, .09], [1319, .11, .09], [1568, .22, .09], [2093, .33, .22, 2637]]
