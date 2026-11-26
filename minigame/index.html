@@ -11,6 +11,7 @@
 @font-face { font-family: 'Galmuri11'; src: url('../assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 :root { --ink: #3a2a1c; --soft: #6b5540; --paper: #fffaf0; --brown: #7a4f2a; --dark: #5a3720; --orange: #e59a3c; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; background: #22303a; color: var(--ink);
   font-family: 'Galmuri11', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
@@ -69,6 +70,10 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
 #splbl { font-variant-numeric: tabular-nums; }
 .sp.ready { opacity: 1; background: #f6c431; color: #7a2a24; animation: sp-pulse .55s infinite alternate; }
 .sp:focus-visible { outline: 3px solid #3f6fb5; outline-offset: 3px; }
+.fc { bottom: calc(104px + env(safe-area-inset-bottom)); width: 64px; height: 64px; font-size: 11px; opacity: 1;
+  background: conic-gradient(#f6a6c1 calc(var(--p, 100) * 1%), rgba(255,250,240,.88) 0); }
+.fc .ico { font-size: 22px; }
+.fc.cool { filter: grayscale(.6); opacity: .8; }
 @keyframes sp-pulse { to { transform: scale(1.08); box-shadow: 0 0 20px 6px rgba(255,214,90,.9), 0 4px 0 var(--dark); } }
 @media (prefers-reduced-motion: reduce) { .sp.ready { animation: none; } }
 </style>
@@ -79,6 +84,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   <div class="hud"><span id="lives">❤️❤️❤️</span><span id="stagelbl">1단계</span><span><span id="score">0</span><small>씨앗</small></span></div>
 
   <button class="sp" id="sp" hidden aria-label="필살기 쓰기"><span class="ico">🌻</span><span id="splbl">필살기</span></button>
+  <button class="sp fc" id="fc" hidden aria-label="나비 친구 부르기: 꿀 방패"><span class="ico">🍯</span><span id="fclbl">친구 찬스</span></button>
 
   <div id="cut" hidden>
     <div class="bg" id="cutbg"></div>
@@ -98,6 +104,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
       <b>누르고 있으면</b> 위로 붕, 떼면 살살 내려간다<br>
       🌰 해바라기씨 +1 · 🌻 해바라기 +10<br>
       씨앗 25개로 볼주머니 가득 → <b>🌻 필살기!</b> (버튼 · X키, 쓰고 나면 12초 재충전)<br>
+      나비랑 친구가 되면 <b>🍯 친구 찬스</b>로 꿀 방패 (C키, 20초마다)<br>
       까마귀 · 먹구름 · 연줄 조심, <b>땅에 떨어져도 하트 −1</b> (목숨 3개)<br>
       단계 끝마다 <b>보스</b>! 이기면 화해하고 친구가 돼서 선물을 준다<br>
       보스전에선 씨앗 껍질을 자동으로 <b>퉤퉤</b> 발사<br>
@@ -182,15 +189,15 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   ];
   const themeOf = st => THEMES[(st - 1) % THEMES.length];
   const BOSS_INFO = {
-    butterfly: { name: '꽃밭 나비', hp: 12, r: 40 },
-    crow:  { name: '대왕 까마귀', hp: 24, r: 46 },
-    owl:   { name: '밤 부엉이',   hp: 34, r: 48 },
-    storm: { name: '먹구름 대장', hp: 44, r: 56 },
+    butterfly: { name: '꽃밭 나비', hp: 16, r: 40 },
+    crow:  { name: '대왕 까마귀', hp: 38, r: 46 },
+    owl:   { name: '밤 부엉이',   hp: 52, r: 48 },
+    storm: { name: '먹구름 대장', hp: 72, r: 56 },
   };
   const bossTypeOf = st => st === 1 ? 'butterfly' : ['crow', 'owl', 'storm'][(st - 2) % 3];
   // 화해 장면 문구와 친구 선물
   const FRIEND_INFO = {
-    butterfly: { make: '나비랑 친구가 됐다!', why: '나비가 꿀을 들고 날아온다…', icon: '🍯', title: '나비 친구가 꿀을 줬다!', sub: '단계마다 한 번 막아주는 꿀 방패 🍯', col: '#c9567f' },
+    butterfly: { make: '나비랑 친구가 됐다!', why: '나비가 꿀을 들고 날아온다…', icon: '🍯', title: '나비 친구가 꿀을 줬다!', sub: '이제 🍯 친구 찬스로 꿀 방패를 부를 수 있어', col: '#c9567f' },
     crow:      { make: '대왕 까마귀랑 화해했다!', why: '사실 씨앗이 부러웠던 거래…', icon: '💎', title: '까마귀가 반짝이를 줬다!', sub: '이제 씨앗이 햄찌한테 끌려온다 ✨', col: '#4a4560' },
     owl:       { make: '밤 부엉이랑 화해했다!', why: '자는데 시끄러워서 화났던 거래…', icon: '🌰', title: '부엉이가 도토리를 줬다!', sub: '필살기가 더 빨리 찬다 (씨앗 25 → 18개)', col: '#7a5a3a' },
     storm:     { make: '먹구름 대장이랑 화해했다!', why: '혼자라서 심술났던 거래…', icon: '🌈', title: '먹구름 대장이 무지개를 줬다!', sub: '목숨 가득 + 먹구름이 더는 안 아프다', col: '#5a6a9a' },
@@ -446,7 +453,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   // ── 상태 ──
   const S = () => Math.min(W, H * .62) / 360;
   let ham, things, pops, clouds, hills, stars, rain, seeds, flowers, lives, dist, t, spawnT, running, hurtT, pouch, holding, speed;
-  let spCd, friends, shield, spReady, specialT, spShotT, specials, spNeed, magnet, stormsFriendly, endingSeen, pendingEnding, endingT, petals;
+  let fcCd, spCd, friends, shield, spReady, specialT, spShotT, specials, spNeed, magnet, stormsFriendly, endingSeen, pendingEnding, endingT, petals;
   let stage, stageT, phase, clearT, boss, bossKills, shells, bullets, shotT, banner, prevTheme, themeFade, shake;
 
   function reset() {
@@ -454,7 +461,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     things = []; pops = []; shells = []; bullets = []; seeds = 0; flowers = 0; lives = 3; dist = 0; t = 0;
     spawnT = 1; hurtT = 0; pouch = 0; holding = false;
     friends = []; shield = false; spReady = false; specialT = 0; spShotT = 0; specials = 0;
-    spCd = 0; spNeed = 25; magnet = false; stormsFriendly = false; endingSeen = false; pendingEnding = false; endingT = 0; petals = [];
+    fcCd = 0; spCd = 0; spNeed = 25; magnet = false; stormsFriendly = false; endingSeen = false; pendingEnding = false; endingT = 0; petals = [];
     stage = 1; stageT = 0; phase = 'fly'; clearT = 0; boss = null; bossKills = 0; shotT = 0; shake = 0;
     prevTheme = null; themeFade = 1; banner = null;
     clouds = Array.from({ length: 6 }, () => ({ x: Math.random() * W, y: Math.random() * H * .6, r: 18 + Math.random() * 22, k: .2 + Math.random() * .3 }));
@@ -477,6 +484,24 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     spBtn.classList.toggle('cool', spCd > 0);
     const lbl = specialT > 0 ? `${specialT.toFixed(1)}초` : spCd > 0 ? `⏳ ${Math.ceil(spCd)}초` : spReady ? '필살기!' : '필살기';
     if ($('splbl').textContent !== lbl) $('splbl').textContent = lbl;
+    // 친구 찬스: 나비와 친구가 된 뒤(2단계부터) 쓸 수 있음
+    fcBtn.hidden = spBtn.hidden || !hasFriend('butterfly');
+    fcBtn.classList.toggle('cool', fcCd > 0 || shield);
+    fcBtn.style.setProperty('--p', Math.round(100 - fcCd / FC_COOL * 100));
+    const fl = shield ? '방패 중' : fcCd > 0 ? `⏳ ${Math.ceil(fcCd)}초` : '친구 찬스';
+    if ($('fclbl').textContent !== fl) $('fclbl').textContent = fl;
+  }
+  const fcBtn = $('fc'), FC_COOL = 20;   // 꿀 방패 부르기: 20초마다
+  function callFriend() {
+    if (!running || phase === 'cutscene' || phase === 'ending' || !hasFriend('butterfly')) return;
+    const s = S();
+    if (shield) { pops.push({ x: ham.x, y: ham.y - 46 * s, txt: '이미 꿀 방패가 있어!', col: '#c98a1e', life: 1 }); return; }
+    if (fcCd > 0) return;
+    shield = true; fcCd = FC_COOL;
+    const f = friends.find(f => f.type === 'butterfly'); if (f) f.hug = .9;
+    pops.push({ x: ham.x, y: ham.y - 46 * s, txt: '🍯 나비 친구 찬스! 꿀 방패', col: '#c9567f', life: 1.5 });
+    [784, 988, 1175].forEach((fq, i) => setTimeout(() => beep(fq, .1, 'sine', .05), i * 80));
+    updateSp();
   }
   const SP_TIME = 3, SP_COOL = 12;   // 필살기 지속 3초, 끝난 뒤 12초 재충전
   const hasFriend = type => friends.some(f => f.type === type && !f.giving);
@@ -489,6 +514,9 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
   });
   addEventListener('keydown', e => { if (running && (e.key === 'x' || e.key === 'X' || e.key === 'Enter')) { e.preventDefault(); activateSpecial(); } });
   spBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); activateSpecial(); });
+  fcBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); callFriend(); });
+  fcBtn.addEventListener('click', e => { if (e.detail === 0) callFriend(); });
+  addEventListener('keydown', e => { if (running && (e.key === 'c' || e.key === 'C')) callFriend(); });
   spBtn.addEventListener('click', e => { if (e.detail === 0) activateSpecial(); });   // 키보드로 누를 때
   addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') press(false); });
   cv.addEventListener('pointerdown', e => { press(true); cv.setPointerCapture(e.pointerId); });
@@ -551,7 +579,6 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     prevTheme = themeOf(stage); stage++; themeFade = 0;
     phase = 'fly'; stageT = 0; boss = null; bullets = []; shells = [];
     if (lives < 3) { lives++; pops.push({ x: ham.x, y: ham.y - 46 * S(), txt: '목숨 +1', col: '#d9534f', life: 1.4 }); }
-    if (hasFriend('butterfly') && !shield) { shield = true; pops.push({ x: ham.x, y: ham.y - 66 * S(), txt: '🍯 꿀 방패 충전', col: '#c98a1e', life: 1.4 }); }
     showBanner(`${stage}단계`, themeOf(stage).name);
     beep(523, .12, 'square', .05); setTimeout(() => beep(784, .16, 'square', .05), 130);
     updateHud();
@@ -762,6 +789,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
 
     // 필살기 중: 무적 + 씨앗 부채꼴 연사 + 씨앗 자석
     if (spCd > 0) spCd = Math.max(0, spCd - dt);
+    if (fcCd > 0) fcCd = Math.max(0, fcCd - dt);
     if (!spReady && specialT <= 0 && spCd <= 0 && pouch >= spNeed) {
       spReady = true;
       pops.push({ x: ham.x, y: ham.y - 50 * s, txt: '필살기 준비!', col: '#d96a1e', life: 1.6 });
@@ -928,7 +956,8 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     let k = 0;
     for (const f of friends) {
       let tx, ty, sc;
-      if (f.giving) { tx = ham.x + 36 * s; ty = ham.y - 16 * s; sc = 1.5; }
+      if (f.hug > 0) { f.hug -= dt; tx = ham.x + 30 * s; ty = ham.y - 20 * s; sc = 1.1; }
+      else if (f.giving) { tx = ham.x + 36 * s; ty = ham.y - 16 * s; sc = 1.5; }
       else if (party) {                // 엔딩: 햄찌 둘레를 빙글빙글
         const a = t * .9 + k * TAU / friends.length;
         tx = ham.x + Math.cos(a) * 95 * s; ty = ham.y + Math.sin(a) * 70 * s; sc = 1.3; k++;
@@ -1223,8 +1252,9 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     ctx.font = '700 16px Galmuri11, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (const p of pops) {
       ctx.globalAlpha = Math.min(1, p.life);
-      ctx.lineWidth = 4; ctx.strokeStyle = '#fffaf0'; ctx.strokeText(p.txt, p.x, p.y);
-      ctx.fillStyle = p.col; ctx.fillText(p.txt, p.x, p.y);
+      const hw = ctx.measureText(p.txt).width / 2 + 8, px = clamp(p.x, hw, W - hw);   // 화면 밖으로 안 잘리게
+      ctx.lineWidth = 4; ctx.strokeStyle = '#fffaf0'; ctx.strokeText(p.txt, px, p.y);
+      ctx.fillStyle = p.col; ctx.fillText(p.txt, px, p.y);
     }
     ctx.globalAlpha = 1;
 
@@ -1280,7 +1310,7 @@ h1 { margin: 6px 0 4px; font-size: 28px; color: var(--dark); }
     while (stage < n) { nextStage(); }
     lives = 3; prevTheme = null; themeFade = 1; banner = null; stageT = 0; updateHud();
   }
-  window.__hamster = { startAt, spawnKite() { const r = Math.random; Math.random = () => .75; spawnPattern(); Math.random = r; }, get state() { return { stage, phase, lives, seeds, hy: ham.y, shield, spReady, specialT, friends: friends.map(f => f.type + (f.giving ? '*' : '')), spNeed, magnet, stormsFriendly, endingSeen, boss: boss && { type: boss.type, hp: boss.hp, y: boss.y } }; }, fillSp() { pouch = spNeed; spReady = true; updateSp(); }, special: () => activateSpecial(), forceBoss() { stageT = STAGE_LEN; }, weakBoss() { if (boss) boss.hp = 1; }, setHp(f) { if (boss) boss.hp = Math.ceil(boss.max * f); }, get bossInfo() { return boss && { hp: boss.hp, max: boss.max, phase2: !!boss.phase2, tired: boss.tired || 0, ult: !!boss.ult }; }, ult() { if (boss) boss.ultIn = 0; }, get spCd() { return spCd; }, hold(v) { holding = v; }, get vy() { return ham.vy; }, get ultGap() { return boss && boss.ult ? { t: boss.ult.t, gap: boss.ult.lastGap } : null; }, giveAll() { for (const ty of ['butterfly', 'crow', 'owl']) friends.push({ type: ty, x: ham.x, y: ham.y, s: .8, ph: 0, giving: false }); shield = true; magnet = true; spNeed = 18; } };
+  window.__hamster = { startAt, spawnKite() { const r = Math.random; Math.random = () => .75; spawnPattern(); Math.random = r; }, get state() { return { stage, phase, lives, seeds, hy: ham.y, shield, spReady, specialT, friends: friends.map(f => f.type + (f.giving ? '*' : '')), spNeed, magnet, stormsFriendly, endingSeen, boss: boss && { type: boss.type, hp: boss.hp, y: boss.y } }; }, get fcCd() { return fcCd; }, callFriend: () => callFriend(), fillSp() { pouch = spNeed; spReady = true; updateSp(); }, special: () => activateSpecial(), forceBoss() { stageT = STAGE_LEN; }, weakBoss() { if (boss) boss.hp = 1; }, setHp(f) { if (boss) boss.hp = Math.ceil(boss.max * f); }, get bossInfo() { return boss && { hp: boss.hp, max: boss.max, phase2: !!boss.phase2, tired: boss.tired || 0, ult: !!boss.ult }; }, ult() { if (boss) boss.ultIn = 0; }, get spCd() { return spCd; }, hold(v) { holding = v; }, get vy() { return ham.vy; }, get ultGap() { return boss && boss.ult ? { t: boss.ult.t, gap: boss.ult.lastGap } : null; }, giveAll() { for (const ty of ['butterfly', 'crow', 'owl']) friends.push({ type: ty, x: ham.x, y: ham.y, s: .8, ph: 0, giving: false }); shield = true; magnet = true; spNeed = 18; } };
 
   $('start').onclick = start;
   $('again').onclick = start;
