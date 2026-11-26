@@ -223,6 +223,51 @@
     addBot(["아까 질문부터 골라줄래? 아래 버튼에서 골라 주면 돼."]);
   }
 
+  /* 새 문자를 판별하는 동안 잠시 접어 둔 질문 */
+  var PENDING_LABEL = {
+    installed: "받은 파일로 앱을 설치했는지 확인",
+    device: "쓰는 폰 기종 확인",
+    steps: "폰에서 하나씩 하던 확인",
+    info: "입력한 정보 확인",
+    recall_input: "입력 칸이 있었는지 확인",
+    recall_file: "파일·설치 버튼이 있었는지 확인"
+  };
+
+  function suspendPending() {
+    if (!state.pending) return null;
+    var saved = {
+      name: state.pending,
+      reask: state.reask,
+      stepNext: state.stepNext,
+      stepHint: state.stepHint,
+      label: PENDING_LABEL[state.pending] || "하던 확인"
+    };
+    clearPending();
+    return saved;
+  }
+
+  function resumeSaved(saved) {
+    if (!saved) return;
+    state.pending = saved.name;
+    state.reask = saved.reask;
+    state.stepNext = saved.stepNext;
+    state.stepHint = saved.stepHint;
+    addBot(["좋아, 아까 하던 데로 돌아가자."]);
+    if (state.reask) state.reask();
+  }
+
+  /* 새 문자 판별 뒤, 접어 둔 질문으로 돌아갈 버튼 */
+  function resumeOffer(block, saved) {
+    if (!saved) return;
+    var p = document.createElement("p");
+    p.className = "dim";
+    p.innerHTML = fmt("아까 하던 이야기(**" + saved.label + "**)도 마저 챙길까?");
+    block.appendChild(p);
+    choices(block, [
+      { label: "아까 하던 이야기 이어서", value: "resume" }
+    ], function () { resumeSaved(saved); });
+  }
+
   /* ───────────────────────── 공통 판별 ───────────────────────── */
 
   var SELF_BLAME = /(내가\s*(바보|멍청|한심|미쳤)|왜\s*(눌렀|샀|보냈|열었)|내\s*(잘못|탓)|나\s*바보|한심)/;
@@ -679,7 +724,7 @@
   }
 
   // 6) 의심 문구 판별
-  function flowTextVerdict(text) {
+  function flowTextVerdict(text, saved) {
     clearPending();
     var a = analyze(text);
     var block = addBot([
@@ -698,6 +743,7 @@
         ]);
       }
     });
+    resumeOffer(block, saved);
   }
 
   /* ───────────────────────── 입력 해석 ───────────────────────── */
@@ -718,20 +764,18 @@
     var t = raw.trim();
     var c = comfort(t);
 
-    /* 대기 중인 질문이 있어도, 새 문자·링크를 붙여넣으면 그 문자의 판별을 먼저 한다 */
-    if (state.pending && state.pending !== "steps" && looksLikeNewLetter(t)) {
-      clearPending();
-      addBot(["새로 보여 준 문자부터 볼게. 아까 그 건은 이어서 챙기자."]);
-      return flowTextVerdict(t);
+    /* 대기 중인 질문이 있어도, 새 문자·링크를 붙여넣으면 그 문자의 판별을 먼저 한다.
+       판별이 끝나면 접어 둔 질문으로 돌아갈 버튼을 함께 보여 준다. */
+    if (state.pending && looksLikeNewLetter(t)) {
+      var saved = suspendPending();
+      addBot(["새로 보여 준 문자부터 볼게. 아까 하던 이야기는 판별이 끝나면 아래 버튼으로 이어 갈 수 있어."]);
+      return flowTextVerdict(t, saved);
     }
 
     /* 기종별 안내 단계를 기다리는 중 */
     if (state.pending === "steps") {
       if (/(모르|어디|못\s*찾|어떻게)/.test(t) && state.stepHint) return state.stepHint();
       if (/(다\s*확인|확인\s*했|확인\s*완료|다음|완료|했어|했음|응|네|ㅇㅇ)/.test(t) && state.stepNext) return state.stepNext();
-      if (looksLikeNewLetter(t)) {
-        addBot(["새로 보여 준 문자는 잠깐 두고, 지금 하던 확인 하나만 먼저 마치자. 아래에서 ‘다 확인했어’를 누르면 바로 그 문자를 같이 볼게."]);
-      }
       return reaskPending();
     }
 
