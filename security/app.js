@@ -774,7 +774,7 @@
       num: "112",
       tel: "tel:112",
       org: "경찰",
-      what: "돈을 보냈거나 협박·협의를 받았을 때"
+      what: "돈을 보냈거나 협박·위협을 당했을 때"
     },
     {
       num: "1332",
@@ -859,7 +859,7 @@
   /* 신고 전에 챙길 것 — 한 번에 하나씩 */
   var REPORT_STEPS = [
     {
-      text: "먼저 **문자·링크 화면을 캐처**해 둬. 링크 주소가 같이 보이게 찍으면 좋아.",
+      text: "먼저 **문자·링크 화면을 캡처**해 둬. 링크 주소가 같이 보이게 찍으면 좋아.",
       hint: "아이폰은 옆면 버튼과 볼륨 올림 버튼을 같이 누르면 찍혀. 안드로이드는 전원 버튼과 볼륨 내림 버튼을 같이 누르면 돼. 폰마다 조금 다를 수 있어."
     },
     {
@@ -885,9 +885,12 @@
 
     function finish() {
       clearPending();
+      var note = document.createElement("p");
+      note.className = "dim";
+      note.innerHTML = fmt("번호는 위쪽 **신고 안내**에서 언제든 다시 볼 수 있어.");
       var block = addBot([
         "여기까지면 신고 준비는 끝이야. 급하게 하지 않아도 돼. 하고 싶을 때 하면 되고, 그전에 뭐가 궁금하면 또 물어봐 줘.",
-        dim("번호는 위쪽 **신고 안내**에서 언제든 다시 볼 수 있어.")
+        note
       ]);
       choices(block, [
         { label: "번호 다시 볼래", value: "numbers" },
@@ -985,7 +988,7 @@
 
     var lead = document.createElement("p");
     lead.className = "sheet-lead";
-    lead.innerHTML = fmt("지금 바로 신고할 필요는 없어. 피해가 있었으면 이 번호로 연결해 줄게. 나는 기관에 직접 신고를 접수하지는 못하고, **전화 연결까지만** 도와줄 수 있어.");
+    lead.innerHTML = fmt("지금 바로 신고할 필요는 없어. 피해가 있었으면 이 번호로 연결해 줄게.");
     sheetBody.appendChild(lead);
     sheetBody.appendChild(reportCard(state.moneyLikely));
 
