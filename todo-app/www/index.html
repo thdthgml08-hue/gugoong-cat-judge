@@ -270,7 +270,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   <div class="card">
     <form id="add-form" autocomplete="off">
       <input id="new-task" maxlength="200" placeholder="할 일을 적어 주세요" aria-label="새 할 일" enterkeyhint="done">
-      <button class="add" id="add-btn" type="submit" disabled>추가</button>
+      <button class="add" id="add-btn" type="submit">추가</button>
     </form>
     <ul id="list"></ul>
     <div class="empty" id="empty" hidden></div>
@@ -394,14 +394,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   }
 
   const input = $("new-task");
-  input.oninput = () => { $("add-btn").disabled = !input.value.trim(); };
   $("add-form").onsubmit = e => {
     e.preventDefault();
     const text = input.value.trim();
-    if (!text) return;
+    if (!text) { input.focus(); return; }
     todos.push({ id: uid(), text, done: false, createdAt: Date.now() });
     save();
-    input.value = ""; $("add-btn").disabled = true;
+    input.value = "";
     if (filter === "done") filter = "all";
     render(); input.focus();
   };
