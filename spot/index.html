@@ -71,9 +71,10 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
     <div class="rules">
       다른 곳을 톡! 위·아래 어디를 눌러도 돼<br>
       찾을 때마다 <b>+100점</b> · 남은 시간은 보너스<br>
-      아무 데나 누르면 <b>시간 −5초</b> 😿<br>
+      아무 데나 누르면 <b>시간이 깎여</b> 😿<br>
       💡 힌트는 한 판에 3번<br>
-      단계가 오를수록 더 꼭꼭 숨어 있다
+      처음엔 3곳 · 90초로 널널하게<br>
+      갈수록 많아지고 짧아지고 미묘해진다… <b>극악</b>
     </div>
     <button class="btn" id="start">찾으러 가자!</button>
     <p class="best" id="best1"></p>
@@ -278,6 +279,9 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
     sun:       { r: 22, easy: ['color'],            hard: ['scale'] },
   };
 
+  const DIFF_COUNT = [3, 4, 5, 6, 7, 8, 9, 10];                 // 단계별 틀린 곳 수
+  const timeFor = n => Math.max(25, 95 - (n - 1) * 9);          // 95초 → 86 → 77 … 최소 25초
+  const missCost = n => n <= 3 ? 3 : 5;                          // 헛손질 벌칙
   function newObj(type, x, y, extra = {}) { return { type, x, y, s: 1, flip: false, rot: 0, ...extra }; }
   function place(objs, type, region, extra) {
     const R = KINDS[type].r;
@@ -299,35 +303,42 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
     place(objs, 'crow', SKY, () => ({ flip: Math.random() < .5 }));
     if (th.moon || Math.random() < .5) place(objs, 'owl', SKY, () => ({ eye: '#f2c94c' }));
     if (Math.random() < .6) place(objs, 'kite', SKY, () => ({ col: pick(KITES) }));
-    for (let i = 0; i < 4 + Math.min(n, 4); i++) place(objs, 'flower', LAND, () => ({ col: pick(PETALS) }));
-    for (let i = 0; i < 2; i++) place(objs, 'mushroom', LAND, () => ({ col: pick(CAPS), dots: 3 + Math.floor(Math.random() * 3) }));
+    // 단계가 오를수록 물건이 많아져서 복잡해짐
+    for (let i = 0; i < 3 + Math.min(n, 9); i++) place(objs, 'flower', LAND, () => ({ col: pick(PETALS) }));
+    for (let i = 0; i < 1 + Math.min(Math.floor(n / 2), 3); i++) place(objs, 'mushroom', LAND, () => ({ col: pick(CAPS), dots: 3 + Math.floor(Math.random() * 3) }));
     place(objs, 'honey', LAND, () => ({ lid: '#b7772a' }));
-    for (let i = 0; i < 3 + Math.min(n, 3); i++) place(objs, 'seed', LAND, () => ({ rot: rnd(-.6, .6) }));
+    for (let i = 0; i < 2 + Math.min(n, 6); i++) place(objs, 'seed', LAND, () => ({ rot: rnd(-.6, .6) }));
+    if (n >= 4) place(objs, 'cloud', [30, 290, 30, 120], () => ({ s: rnd(.7, .9) }));
 
     // 틀린 곳 고르기: 서로 너무 붙지 않게
-    const k = Math.min(4 + n, 8);
+    // 난이도 곡선: 틀린 곳 3 → 10곳, 1~2단계는 눈에 띄는 것만, 3~4단계 섞임, 5단계부터 미묘한 것 위주, 6단계부터 '살짝 옮기기'까지
+    const k = DIFF_COUNT[Math.min(n, DIFF_COUNT.length) - 1];
+    const gapMin = n >= 6 ? 38 : 46;
     const diffs = [], B = objs.map(o => ({ ...o }));
     for (const i of shuffle(objs.map((_, i) => i))) {
       if (diffs.length >= k) break;
       const o = objs[i], K = KINDS[o.type];
-      const muts = n === 1 ? K.easy : K.easy.concat(K.hard, K.hard);   // 2단계부터 미묘한 변화가 더 잘 나옴
-      if (!muts.length || diffs.some(d => Math.hypot(d.x - o.x, d.y - o.y) < 46)) continue;
+      let muts = n <= 2 ? K.easy : n <= 4 ? K.easy.concat(K.hard) : K.easy.concat(K.hard, K.hard, K.hard);
+      if (n >= 6 && o.type !== 'sun' && o.type !== 'hamster') muts = muts.concat(['move', 'move']);
+      if (!muts.length || diffs.some(d => Math.hypot(d.x - o.x, d.y - o.y) < gapMin)) continue;
       const m = pick(muts), b = B[i];
       if (m === 'remove') b.hidden = true;
       else if (m === 'color') b.type === 'butterfly' ? b.wings = pick(WINGS.filter(w => w !== o.wings)) : b.type === 'kite' ? b.col = pick(KITES.filter(w => w !== o.col)) : b.type === 'mushroom' ? b.col = pick(CAPS.filter(cc => cc !== o.col)) : b.type === 'sun' ? b.col = (th.moon ? '#ffd27a' : '#ffb04a') : b.col = pick(PETALS.filter(cc => cc !== o.col));
       else if (m === 'hat') b.hat = pick(HATS.filter(h => h !== o.hat));
-      else if (m === 'scale') b.s = o.s * (Math.random() < .5 ? 1.4 : .65);
+      else if (m === 'scale') b.s = o.s * (Math.random() < .5 ? (n >= 7 ? 1.22 : n >= 5 ? 1.3 : 1.4) : (n >= 7 ? .8 : n >= 5 ? .72 : .65));
+      else if (m === 'move') { const a = rnd(0, TAU); b.x = o.x + Math.cos(a) * 14; b.y = o.y + Math.sin(a) * 10; }
       else if (m === 'flip') b.flip = !o.flip;
-      else if (m === 'rot') b.rot = o.rot + (Math.random() < .5 ? 1.4 : -1.4);
+      else if (m === 'rot') b.rot = o.rot + (Math.random() < .5 ? 1 : -1) * (n >= 7 ? .8 : 1.4);
       else if (m === 'eye') b.eye = '#e8743a';
       else if (m === 'lid') b.lid = '#e8574a';
       else if (m === 'dots') b.dots = o.dots >= 4 ? o.dots - 2 : o.dots + 2;
-      diffs.push({ x: o.x, y: o.y - (o.type === 'hamster' ? 8 : o.type === 'flower' ? 10 : 0), r: Math.max(18, K.r * Math.max(o.s, b.s)), found: false, m });
+      const cx = (o.x + b.x) / 2, cy = (o.y + b.y) / 2 - (o.type === 'hamster' ? 8 : o.type === 'flower' ? 10 : 0);
+      diffs.push({ x: cx, y: cy, r: Math.max(18, K.r * Math.max(o.s, b.s) + Math.hypot(b.x - o.x, b.y - o.y) / 2), found: false, m });
     }
     // 가끔은 아래 그림에만 새로 생긴 것도
-    if (diffs.length < k) {
+    if (diffs.length < k || (n >= 3 && Math.random() < .4)) {
       const add = place(B, Math.random() < .5 ? 'flower' : 'seed', LAND, () => ({ col: pick(PETALS), rot: rnd(-.6, .6) }));
-      if (add && !diffs.some(d => Math.hypot(d.x - add.x, d.y - add.y) < 46)) diffs.push({ x: add.x, y: add.y - (add.type === 'flower' ? 10 : 0), r: 18, found: false, m: 'add' });
+      if (add && !diffs.some(d => Math.hypot(d.x - add.x, d.y - add.y) < gapMin)) diffs.push({ x: add.x, y: add.y - (add.type === 'flower' ? 10 : 0), r: 18, found: false, m: 'add' });
     }
     return { th, A: objs, B, diffs };
   }
@@ -373,10 +384,10 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
   addEventListener('resize', resize); resize();
 
   // ───────── 게임 상태 ─────────
-  let running = false, level = 1, lv = null, timeLeft = 60, timeMax = 60, score = 0, hints = 3, marks = [], pulse = null, clearT = 0, foundTotal = 0, t = 0, revealT = 0;
+  let pops = [], running = false, level = 1, lv = null, timeLeft = 60, timeMax = 60, score = 0, hints = 3, marks = [], pulse = null, clearT = 0, foundTotal = 0, t = 0, revealT = 0;
   function startLevel() {
     lv = genLevel(level);
-    timeMax = Math.max(40, 62 - (level - 1) * 4); timeLeft = timeMax;
+    timeMax = timeFor(level); timeLeft = timeMax;
     marks = []; pulse = null; clearT = 0;
     updateHud();
   }
@@ -404,8 +415,9 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
         [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => beep(f, .12, 'square', .05), i * 100));
       }
     } else {
-      timeLeft = Math.max(0, timeLeft - 5);
+      timeLeft = Math.max(0, timeLeft - missCost(level));
       marks.push({ kind: 'miss', x: lx, y: ly, life: .9 });
+      pops.push({ x: px, y: py - 16, txt: `−${missCost(level)}초`, life: .9 });
       beep(150, .2, 'sawtooth', .06, .6);
       if (navigator.vibrate) navigator.vibrate(60);
     }
@@ -428,6 +440,8 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
       if (timeLeft <= 0) { timeLeft = 0; revealT = 2.2; beep(300, .4, 'triangle', .07, .5); updateHud(); }
     }
     for (const m of marks) m.life -= dt;
+    for (const q of pops) { q.life -= dt; q.y -= 30 * dt; }
+    pops = pops.filter(q => q.life > 0);
     marks = marks.filter(m => m.life > 0);
     if (pulse) { pulse.t -= dt; if (pulse.t <= 0) pulse = null; }
     const f = timeLeft / timeMax;
@@ -467,6 +481,9 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
       ctx.fillStyle = 'rgba(255,250,240,.9)'; ctx.fillRect(p.x + 6, p.y + 6, tw, 18);
       ctx.fillStyle = '#5a3720'; ctx.fillText(p.label, p.x + 12, p.y + 9);
     });
+    ctx.font = '700 15px Galmuri11, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const q of pops) { ctx.globalAlpha = Math.min(1, q.life * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#fffaf0'; ctx.strokeText(q.txt, q.x, q.y); ctx.fillStyle = '#c94c40'; ctx.fillText(q.txt, q.x, q.y); }
+    ctx.globalAlpha = 1;
     // 큰 알림
     const msg = marks.find(m => m.kind === 'clear');
     const text = msg ? msg.txt : revealT > 0 ? '시간 끝! 여기였어' : null;
@@ -496,7 +513,7 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
     if (isBest) { best = score; store.set(best); }
     $('final').textContent = `${score}점`;
     $('stats').textContent = `${level}단계까지 · 찾은 곳 ${foundTotal}개`;
-    $('verdict').textContent = level >= 6 ? '매의 눈… 아니 햄찌의 눈 👀' : level >= 4 ? '눈썰미 대장' : level >= 2 ? '눈썰미 좋은데?' : '다음엔 더 찾을 수 있어!';
+    $('verdict').textContent = level >= 8 ? '극악 돌파! 햄찌의 눈 👀' : level >= 6 ? '매의 눈… 아니 햄찌의 눈' : level >= 4 ? '눈썰미 대장' : level >= 2 ? '눈썰미 좋은데?' : '다음엔 더 찾을 수 있어!';
     $('best2').textContent = isBest ? '새 최고 기록!' : `최고 기록 · ${best}점`;
     $('over').hidden = false; showBest(); updateHud();
   }
@@ -508,7 +525,7 @@ h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
   }
   drawIcon('icon1'); drawIcon('icon2');
 
-  window.__spot = { get state() { return { running, level, timeLeft, score, hints, diffs: lv && lv.diffs.map(d => ({ ...d })) }; }, panels: () => panels, tap };
+  window.__spot = { gen: genLevel, timeFor, get state() { return { running, level, timeLeft, score, hints, diffs: lv && lv.diffs.map(d => ({ ...d })) }; }, panels: () => panels, tap };
   $('start').onclick = start;
   $('again').onclick = start;
   lv = genLevel(1);
