@@ -6,7 +6,8 @@
     "detection_alerts:read",
     "service_health:read",
     "report:create",
-    "operator_ai:notify"
+    "operator_ai:notify",
+    "files:virus_scan(read-only, ClamAV)"
   ],
   "propose_only": {
     "note": "보안전문 구공이는 제안만 하고, 실행은 관리자 승인 후 사람 또는 별도 시스템이 한다.",
@@ -24,7 +25,8 @@
     "deploy:*",
     "permissions:write",
     "logs:delete",
-    "logs:export_external"
+    "logs:export_external",
+    "files:delete_or_quarantine"
   ],
   "auto_block": {
     "note": "AI가 아니라 shield.js의 고정 규칙이 실행한다. 들어오는 요청만 막고, 차단은 시간이 지나면 자동 해제된다.",

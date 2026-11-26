@@ -117,6 +117,44 @@ app.use(shield.middleware);                      // Express
 **한계도 알아 두세요.** 지킴이는 주소와 헤더를 봐요. POST 본문 속 공격은 앱에서 입력값을 검증해야 막을 수 있어요.
 대량 트래픽 공격(DDoS)은 서버 하나로는 못 막으니, 실제로 서비스한다면 Cloudflare 같은 앞단 서비스를 함께 쓰세요.
 
+## 바이러스 검사 (검사만, 치료는 안 함)
+
+검증된 오픈소스 백신 엔진 **ClamAV**를 구공이가 대신 돌리고 결과를 알려 줍니다.
+**검사만** 해요. 파일을 지우거나 옮기거나 고치지 않습니다. 찾으면 무엇을 하면 좋을지 제안만 해요.
+
+### 처음 한 번: ClamAV 설치 + 바이러스 정보 받기
+
+| 컴퓨터 | 설치 | 바이러스 정보 받기 |
+| --- | --- | --- |
+| 맥 | `brew install clamav` | `cp "$(brew --prefix)/etc/clamav/freshclam.conf.sample" "$(brew --prefix)/etc/clamav/freshclam.conf"` 후 그 파일의 `Example` 줄 지우고 `freshclam` |
+| 윈도우 | [clamav.net/downloads](https://www.clamav.net/downloads)에서 설치 | 설치 폴더에서 `freshclam.exe` |
+| 우분투 | `sudo apt install clamav` | `sudo freshclam` (보통 자동 업데이트돼요) |
+
+바이러스 정보는 매일 새로 나오니까 가끔 `freshclam`을 다시 실행해 주세요. 7일이 넘으면 구공이가 알려 줘요.
+
+### 검사하기
+
+```bash
+npm run virus -- ~/Downloads          # 다운로드 폴더 검사
+npm run virus -- ~/Desktop ~/Documents  # 여러 곳 한 번에
+```
+바이러스가 있으면 종료 코드 1, 없으면 0이에요.
+
+서버로는 업로드된 파일을 저장하기 전에 검사할 수 있어요 (5MB까지, 검사 후 임시 파일은 바로 지움):
+```bash
+curl -s localhost:8787/v1/scan/virus -d '{"name":"game.exe","file_base64":"<base64>"}'
+# → { "level": "위험", "verdict": "block", "infected": [{ "file": "game.exe", "virus": "..." }] }
+```
+ClamAV가 없거나 검사가 실패하면 통과시키지 않고 `review`로 보내요.
+
+### 알아 둘 것
+
+- 구공이 검사는 **직접 실행하는 한 번 검사**예요. 실시간으로 지켜 주는 상주 백신(Windows Defender, V3, 알약)을 대신하지 않아요. 같이 쓰세요.
+- **핸드폰은 직접 검사할 수 없어요.** 아이폰은 앱이 다른 앱을 들여다볼 수 없게 막혀 있고, 안드로이드도 제한돼 있어요.
+  - 안드로이드: Play 스토어 → 프로필 → **Play 프로텍트**로 검사하세요. 수상한 `.apk` 파일은 컴퓨터로 옮겨서 구공이로 검사할 수 있어요.
+  - 아이폰: iOS를 최신으로 유지하고, 모르는 문자 속 링크를 누르지 않는 게 최고의 백신이에요.
+- 테스트는 EICAR(모든 백신이 시험용 바이러스로 잡는 무해한 문자열)로 해요. 저장소에는 그 파일을 두지 않고 테스트 때 만들어요.
+
 ## 레포 점검 CLI
 
 ```bash
@@ -135,6 +173,7 @@ npm run scan -- ../..   # 다른 폴더
 | `src/guard.js` | 문지기 서버 (정적 파일 또는 프록시 앞에서 지킴이 실행) |
 | `src/server.js` | 검열 HTTP 서버 (토큰 인증, 요청 크기 제한, 지킴이 적용) |
 | `src/scan-repo.js` | 레포 점검 CLI |
+| `src/virus-scan.js` | 바이러스 검사 (ClamAV, 검사 전용) |
 | `test/` | 규칙 엔진·지킴이 테스트 |
 
 ## 아직 없는 것

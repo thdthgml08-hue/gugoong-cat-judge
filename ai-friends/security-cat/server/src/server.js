@@ -4,6 +4,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { checkText, analyzeLogs, scanCode, maxLevel, maxVerdict } from './rules.js';
 import { aiEnabled, judgeText, judgeImage, judgeLogs, MODEL } from './claude.js';
 import { createShield } from './shield.js';
+import { scanBuffer } from './virus-scan.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOKEN = process.env.GUARD_TOKEN || '';
@@ -127,11 +128,26 @@ function scan(body) {
   return { level, findings, files_scanned: Math.min(files.length, 500) };
 }
 
+async function virus(body) {
+  const data = String(body.file_base64 ?? '').replace(/^data:[^,]+,/, '');
+  if (!data) throw new HttpError(400, 'file_base64가 필요해요');
+  const buf = Buffer.from(data, 'base64');
+  if (buf.length > 5 * 1024 * 1024) throw new HttpError(413, '파일은 5MB까지예요');
+  try {
+    const r = await scanBuffer(buf, String(body.name ?? 'upload.bin'), { db: process.env.CLAMAV_DB || undefined });
+    return { ...r, verdict: r.infected.length ? 'block' : r.level === '정상' ? 'allow' : 'review', note: '검사만 했어요. 파일은 저장하지 않고 바로 지웠어요.' };
+  } catch (err) {
+    // 백신이 없거나 실패하면 통과시키지 않는다.
+    return { level: '주의', verdict: 'review', infected: [], error: err.code === 'NO_CLAMAV' ? 'ClamAV가 설치돼 있지 않아요' : err.message };
+  }
+}
+
 const ROUTES = {
   'POST /v1/moderate/text': moderateText,
   'POST /v1/moderate/image': moderateImage,
   'POST /v1/analyze/logs': analyze,
   'POST /v1/scan/code': scan,
+  'POST /v1/scan/virus': virus,
 };
 
 export const server = http.createServer(async (req, res) => {
