@@ -701,6 +701,7 @@
 
   chips.forEach(function (chip) {
     chip.addEventListener("click", function () {
+      state.pending = null;
       send(chip.textContent.trim());
     });
   });
