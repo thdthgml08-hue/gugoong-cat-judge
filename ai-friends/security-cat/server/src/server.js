@@ -3,6 +3,7 @@ import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { checkText, analyzeLogs, scanCode, maxLevel, maxVerdict } from './rules.js';
 import { aiEnabled, judgeText, judgeImage, judgeLogs, MODEL } from './claude.js';
+import { createShield } from './shield.js';
 
 const PORT = Number(process.env.PORT || 8787);
 const TOKEN = process.env.GUARD_TOKEN || '';
@@ -23,14 +24,13 @@ function authorized(req) {
   return got.length === want.length && timingSafeEqual(got, want);
 }
 
-const hits = new Map();
-function rateLimited(ip) {
-  const now = Date.now();
-  const recent = (hits.get(ip) || []).filter((t) => now - t < 60_000);
-  recent.push(now);
-  hits.set(ip, recent);
-  return recent.length > Number(process.env.GUARD_RATE_PER_MIN || 60);
-}
+// 구공이 서버 자신도 지킴이가 지킨다. 검열 API는 남의 서버가 부르는 거라 허용 목록은 비워 둔다.
+const shield = createShield({
+  ratePerMin: Number(process.env.GUARD_RATE_PER_MIN || 60),
+  allowlist: [],
+  trustProxy: process.env.GUARD_TRUST_PROXY === '1',
+  onEvent: (ev) => console.log(JSON.stringify({ kind: 'shield', ...ev })),
+});
 
 async function readJson(req) {
   let size = 0;
@@ -135,7 +135,7 @@ const ROUTES = {
 };
 
 export const server = http.createServer(async (req, res) => {
-  const ip = req.socket.remoteAddress || 'unknown';
+  if (shield.handle(req, res)) return;
   try {
     const url = new URL(req.url, 'http://localhost');
     if (req.method === 'GET' && url.pathname === '/health') {
@@ -144,7 +144,6 @@ export const server = http.createServer(async (req, res) => {
     const handler = ROUTES[`${req.method} ${url.pathname}`];
     if (!handler) throw new HttpError(404, '그런 길은 없어요 냥');
     if (!authorized(req)) throw new HttpError(401, '토큰이 필요해요');
-    if (rateLimited(ip)) throw new HttpError(429, '너무 자주 불렀어요. 잠깐 쉬었다 와요');
     const result = await handler(await readJson(req));
     audit(url.pathname, result);
     send(res, 200, result);

@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node src/server.js",
     "scan": "node src/scan-repo.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "guard": "node src/guard.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",

@@ -25,5 +25,12 @@
     "permissions:write",
     "logs:delete",
     "logs:export_external"
-  ]
+  ],
+  "auto_block": {
+    "note": "AI가 아니라 shield.js의 고정 규칙이 실행한다. 들어오는 요청만 막고, 차단은 시간이 지나면 자동 해제된다.",
+    "actions": [
+      "request:reject",
+      "ip:temp_ban(15m, auto-expire)"
+    ]
+  }
 }

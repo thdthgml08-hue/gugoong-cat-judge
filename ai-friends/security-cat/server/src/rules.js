@@ -101,8 +101,8 @@ export function checkText(text) {
 const IP_RE = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{1,4}:){2,7}[0-9a-f]{1,4}\b/i;
 const FAIL_RE = /(login|auth|sign[- ]?in|로그인|인증)[^\n]{0,40}(fail|denied|invalid|incorrect|실패|거부)|\b401\b|Failed password/i;
 const OK_RE = /(login|auth|sign[- ]?in|로그인)[^\n]{0,40}(success|ok|accepted|성공)|Accepted password/i;
-const PROBE_RE = /\/(\.env|\.git\/|wp-admin|wp-login|phpmyadmin|\.aws|config\.php|server-status|actuator)/i;
-const ATTACK_RE = [
+export const PROBE_RE = /\/(\.env|\.git\/|wp-admin|wp-login|phpmyadmin|\.aws|config\.php|server-status|actuator)/i;
+export const ATTACK_RE = [
   { id: 'sqli', label: 'SQL 인젝션 시도', re: /(union(\s|%20|\+)+select|'(\s|%20)*or(\s|%20)*'?1'?=|sleep\(\d|--(\s|%20)*$|information_schema)/i },
   { id: 'xss', label: 'XSS 시도', re: /(<script|%3Cscript|javascript:|onerror=)/i },
   { id: 'traversal', label: '경로 조작 시도', re: /(\.\.\/|\.\.%2f|%2e%2e%2f){2,}|\/etc\/passwd/i },
