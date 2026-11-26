@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="구공이 902">
 <link rel="icon" href="../assets/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="../assets/icon-180.png">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -26,6 +26,7 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <button type="button" id="reportBtn" class="text-btn" aria-controls="reportSheet" aria-expanded="false" title="신고 번호와 준비 안내">신고 안내</button>
       <span class="demo-badge" title="미리 짜인 대화로 체험하는 데모야">데모</span>
       <button type="button" id="reset" class="icon-btn" title="대화 초기화" aria-label="대화 초기화">
         <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.6 5.9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M4 6.5v5.2h5.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -45,6 +46,7 @@
       <button type="button" class="chip">택배 문자가 왔는데 눌러도 돼?</button>
       <button type="button" class="chip">사실 이미 눌렀어...</button>
       <button type="button" class="chip">주소도 입력했고 파일도 받았어</button>
+      <button type="button" class="chip">신고하고 싶어</button>
     </div>
 
     <form id="composer" class="composer" autocomplete="off">
@@ -56,8 +58,21 @@
   </div>
 </div>
 
+<div class="sheet" id="reportSheet" hidden>
+  <div class="sheet-backdrop" data-close></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reportSheetTitle">
+    <div class="sheet-head">
+      <h2 id="reportSheetTitle">신고 안내</h2>
+      <button type="button" class="icon-btn sheet-x" data-close aria-label="신고 안내 닫기">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="reportSheetBody"></div>
+  </div>
+</div>
+
 <noscript><p style="padding:20px;font-family:sans-serif">자바스크립트를 켜야 구공이와 대화할 수 있어.</p></noscript>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

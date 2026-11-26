@@ -12,6 +12,8 @@
  *   - 한 번에 질문은 하나만. 기억은 전부 하고, 위험한 것부터 챙긴다
  *   - 선택지를 기다리는 중에 다른 입력이 오면 엉뚱하게 처리하지 않는다
  *     (문자·링크면 새로 판별하고, 애매하면 "아까 질문부터 골라줄래?" 하고 다시 보여 준다)
+ *   - 신고는 기관에 접수하지 않는다. 118·112·1332 번호 안내와 tel: 연결까지만 하고,
+ *     준비 안내(캡처 → 문자 보존 → 지급정지 → 접수번호)는 한 번에 하나씩 보여 준다
  *   - 서버에 실제 AI를 붙일 때는 이 파일 대신 system-prompt.md를 그대로 쓰면 된다
  */
 (function () {
@@ -21,6 +23,9 @@
   var form = document.getElementById("composer");
   var input = document.getElementById("input");
   var resetBtn = document.getElementById("reset");
+  var reportBtn = document.getElementById("reportBtn");
+  var sheet = document.getElementById("reportSheet");
+  var sheetBody = document.getElementById("reportSheetBody");
   var chips = Array.prototype.slice.call(document.querySelectorAll("#quickstart .chip"));
 
   var ASSET = "../assets/icon-180.png";
@@ -31,7 +36,8 @@
     recallStage: null,
     reask: null,          // 대기 중인 질문을 다시 보여 주는 함수
     stepNext: null,       // 기종별 안내: 다음 단계
-    stepHint: null        // 기종별 안내: 메뉴 위치
+    stepHint: null,       // 기종별 안내: 메뉴 위치
+    moneyLikely: false    // 이번 사건에 돈이 오갔을 가능성(1332를 먼저 보여 준다)
   };
 
   /* ───────────────────────── 렌더링 ───────────────────────── */
@@ -230,7 +236,8 @@
     steps: "폰에서 하나씩 하던 확인",
     info: "입력한 정보 확인",
     recall_input: "입력 칸이 있었는지 확인",
-    recall_file: "파일·설치 버튼이 있었는지 확인"
+    recall_file: "파일·설치 버튼이 있었는지 확인",
+    report: "신고 전에 챙길 것 확인"
   };
 
   function suspendPending() {
@@ -356,6 +363,7 @@
   function flowGreet() {
     clearPending();
     state.caseHasInput = false;
+    state.moneyLikely = false;
     addBot([
       "안녕, 나는 구공이(902)야. 보안 쪽을 같이 봐 주는 경비 친구야.",
       "수상한 문자나 링크가 왔으면 내용을 붙여넣어도 되고, 아래 버튼에서 골라도 돼. 이름·주소는 가려도 괜찮아.",
@@ -518,6 +526,7 @@
         flowInfoQuestion();
       } else {
         block.appendChild(riskNote("파일을 열지 않았다면 지금 할 일은 그거 하나야. 그래도 그 문자가 어디서 왔는지 이상하면 118에 물어봐 줘."));
+        offerReport(block, state.moneyLikely);
       }
       return;
     }
@@ -606,7 +615,8 @@
         if (alsoEnteredInfo) {
           flowInfoQuestion("단계마다 확인해 줘서 고마워. 이제 처음에 말한 **주소 입력 건**을 챙기자.");
         } else {
-          addBot([CLOSING]);
+          var endBlock = addBot([CLOSING]);
+          offerReport(endBlock, state.moneyLikely);
         }
         return;
       }
@@ -671,26 +681,30 @@
   function answerInfo(v) {
     clearPending();
     if (v === "secret") {
-      addBot([
+      state.moneyLikely = true;
+      var secretBlock = addBot([
         "그건 꼭 챙겨야 해. 지금 쓰는 폰 말고 **다른 기기**에서 그 사이트 비밀번호부터 바꿔 줘. 같은 비밀번호를 쓴 다른 사이트도 같이 바꾸고, 카드사 앱에서 결제 알림을 켜 줘.",
         "결제가 이미 찍혔다면 카드사 고객센터에 바로 전화해 줘. 문자에 있던 링크는 다시 열지 말고, 필요하면 112(경찰)나 KISA 118에 신고하면 돼.",
         CLOSING
       ]);
+      offerReport(secretBlock, true);
       return;
     }
     if (v === "addr") {
-      addBot([
+      var addrBlock = addBot([
         "그럼 지금 할 일은 두 가지야. 하나, 그 문자는 지우지 말고 열지도 말기 — 118이나 경찰에 신고할 때 증거가 돼. 둘, 며칠 안에 ‘주소 오류’나 ‘배송 보류’ 같은 문자가 또 올 수 있으니, 오면 열지 말고 118에 전달해 주기.",
         "이름·주소만으로 바로 결제가 되지는 않지만, 다른 곳과 조합되면 쓰일 수 있어. 그래서 같은 문자가 또 오면 그때도 나한테 보여 줘.",
         CLOSING
       ]);
+      offerReport(addrBlock, state.moneyLikely);
       return;
     }
-    addBot([
+    var unknownBlock = addBot([
       "괜찮아, 기억 안 나도 돼. 그럼 더 조심하는 쪽으로 해 두자.",
       "다른 기기에서 그 사이트 비밀번호를 바꾸고, 카드사 앱에서 결제 알림을 켜 줘. 그리고 그 문자는 지우지 말고 그대로 두고 118에 신고해 줘 — 신고할 때 증거가 돼.",
       CLOSING
     ]);
+    offerReport(unknownBlock, state.moneyLikely);
   }
 
   function flowScreenOnly() {
@@ -746,6 +760,267 @@
     resumeOffer(block, saved);
   }
 
+  /* ───────────────────────── 신고 안내 ───────────────────────── */
+
+  /* 실제 신고 접수는 하지 않는다. 번호 안내와 tel: 연결까지만. */
+  var REPORT_NUMBERS = [
+    {
+      num: "118",
+      tel: "tel:118",
+      org: "한국인터넷진흥원(KISA)",
+      what: "스미싱 문자·해킹·개인정보 피해 신고"
+    },
+    {
+      num: "112",
+      tel: "tel:112",
+      org: "경찰",
+      what: "돈을 보냈거나 협박·협의를 받았을 때"
+    },
+    {
+      num: "1332",
+      tel: "tel:1332",
+      org: "금융감독원 금융상담센터",
+      what: "계좌이체·카드 결제 피해 상담, 지급정지 문의"
+    }
+  ];
+
+  function reportCard(money) {
+    var box = document.createElement("div");
+    box.className = "report";
+
+    var head = document.createElement("div");
+    head.className = "report-head";
+    head.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.3-2.9 7.6-7 9.5-4.1-1.9-7-5.2-7-9.5V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 8.2v4.2M12 15.4v.1" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+    var title = document.createElement("span");
+    title.className = "report-title";
+    title.textContent = "신고 번호";
+    head.appendChild(title);
+    box.appendChild(head);
+
+    var note = document.createElement("p");
+    note.className = "report-note";
+    note.innerHTML = fmt("나는 기관에 **직접 신고를 접수할 수는 없어.** 번호로 전화를 연결해 주는 데까지만 도와줄 수 있어.");
+    box.appendChild(note);
+
+    var list = document.createElement("ul");
+    list.className = "report-list";
+    var items = money
+      ? [REPORT_NUMBERS[2], REPORT_NUMBERS[1], REPORT_NUMBERS[0]]
+      : REPORT_NUMBERS;
+
+    items.forEach(function (r) {
+      var li = document.createElement("li");
+      li.className = "report-item";
+
+      var a = document.createElement("a");
+      a.className = "report-tel";
+      a.href = r.tel;
+      a.setAttribute("aria-label", r.num + " " + r.org + "로 전화 걸기");
+      var num = document.createElement("b");
+      num.textContent = r.num;
+      var conn = document.createElement("span");
+      conn.textContent = "통화 연결";
+      a.appendChild(num);
+      a.appendChild(conn);
+
+      var tx = document.createElement("div");
+      tx.className = "report-text";
+      var org = document.createElement("div");
+      org.className = "report-org";
+      var orgName = document.createElement("span");
+      orgName.textContent = r.org;
+      org.appendChild(orgName);
+      if (money && r.num === "1332") {
+        var first = document.createElement("span");
+        first.className = "report-first";
+        first.textContent = "먼저";
+        org.appendChild(first);
+      }
+      var desc = document.createElement("div");
+      desc.className = "report-desc";
+      desc.textContent = r.what;
+
+      tx.appendChild(org);
+      tx.appendChild(desc);
+      li.appendChild(a);
+      li.appendChild(tx);
+      list.appendChild(li);
+    });
+    box.appendChild(list);
+
+    var foot = document.createElement("p");
+    foot.className = "report-foot";
+    foot.textContent = "컴퓨터에서는 전화 앱이 안 열릴 수 있어. 그럴 땐 화면에 보이는 숫자를 그대로 걸면 돼.";
+    box.appendChild(foot);
+
+    return box;
+  }
+
+  /* 신고 전에 챙길 것 — 한 번에 하나씩 */
+  var REPORT_STEPS = [
+    {
+      text: "먼저 **문자·링크 화면을 캐처**해 둬. 링크 주소가 같이 보이게 찍으면 좋아.",
+      hint: "아이폰은 옆면 버튼과 볼륨 올림 버튼을 같이 누르면 찍혀. 안드로이드는 전원 버튼과 볼륨 내림 버튼을 같이 누르면 돼. 폰마다 조금 다를 수 있어."
+    },
+    {
+      text: "그 문자는 **지우지 말고 그대로** 둬. 신고할 때 증거가 돼. 열지만 마.",
+      hint: "지우면 신고할 때 보여 줄 게 없어져. 그대로 두고, 문자를 열어서 링크를 누르지는 말자."
+    },
+    {
+      text: "돈을 보냈거나 카드로 결제됐으면, **은행·카드사 고객센터에 먼저 전화해서 지급정지**를 부탁해 줘. 1332(금융감독원)에서도 같이 안내받을 수 있어.",
+      hint: "카드 뒷면이나 은행 앱에 적힌 고객센터 번호로 걸면 돼. 지급정지는 빠를수록 좋으니 오늘 이체했으면 이것부터 해 줘."
+    },
+    {
+      text: "신고하고 나면 **접수번호(처리번호)를 메모**해 둬. 나중에 진행 상황을 물어볼 때 필요해.",
+      hint: "전화로 신고하면 담당자가 번호를 불러 줘. 문자로도 올 수 있으니 그 문자는 지우지 말고 두자."
+    }
+  ];
+
+  function reportPrep(startNote) {
+    var i = 0;
+
+    function label() {
+      return i === REPORT_STEPS.length - 1 ? "다 챙겼어" : "확인했어, 다음";
+    }
+
+    function finish() {
+      clearPending();
+      var block = addBot([
+        "여기까지면 신고 준비는 끝이야. 급하게 하지 않아도 돼. 하고 싶을 때 하면 되고, 그전에 뭐가 궁금하면 또 물어봐 줘.",
+        dim("번호는 위쪽 **신고 안내**에서 언제든 다시 볼 수 있어.")
+      ]);
+      choices(block, [
+        { label: "번호 다시 볼래", value: "numbers" },
+        { label: "이제 괜찮아", value: "done" }
+      ], function (v) {
+        if (v === "numbers") openSheet();
+        else addBot(["응. 다른 문자도 이상하면 언제든 불러 줘."]);
+      });
+    }
+
+    function advance() {
+      if (i >= REPORT_STEPS.length - 1) return finish();
+      i++;
+      show("좋아, 다음은 이거야.");
+    }
+
+    function showHint() {
+      var b = addBot([REPORT_STEPS[i].hint]);
+      state.pending = "report";
+      state.stepNext = advance;
+      state.stepHint = showHint;
+      stepButtons(b);
+    }
+
+    function stepButtons(block) {
+      choices(block, [
+        { label: label(), value: "ok" },
+        { label: "어떻게 하는 거야", value: "hint" }
+      ], function (v) {
+        if (v === "hint") return showHint();
+        advance();
+      });
+    }
+
+    function show(head) {
+      var block = addBot([
+        head + " (" + (i + 1) + "/" + REPORT_STEPS.length + ")",
+        REPORT_STEPS[i].text
+      ]);
+      state.pending = "report";
+      state.stepNext = advance;
+      state.stepHint = showHint;
+      state.reask = function () {
+        var b = addBot(["아까 단계부터 볼까? (" + (i + 1) + "/" + REPORT_STEPS.length + ")", REPORT_STEPS[i].text]);
+        state.pending = "report";
+        state.stepNext = advance;
+        state.stepHint = showHint;
+        stepButtons(b);
+      };
+      stepButtons(block);
+    }
+
+    show(startNote || "신고 전에 챙길 것부터 하나씩 볼게. 다 안 해도 되고, 순서만 알아 두자.");
+  }
+
+  /* 대화 중 신고를 권하는 자리 */
+  function showReport(lead, money) {
+    clearPending();
+    var block = addBot([
+      lead || "신고까지 챙길까? 지금 바로 할 필요는 없어. 피해가 있었으면 이 번호로 연결해 줄게.",
+      dim("자동으로 신고되는 건 아니야. 버튼을 누르면 네 폰의 전화 앱에 번호가 열려.")
+    ]);
+    block.appendChild(reportCard(!!money));
+    choices(block, [
+      { label: "신고 전에 챙길 것 볼게", value: "prep" },
+      { label: "지금은 괜찮아", value: "later" }
+    ], function (v) {
+      if (v === "prep") return reportPrep();
+      addBot(["응. 나중에 필요하면 위쪽 **신고 안내**에서 언제든 다시 볼 수 있어."]);
+    });
+  }
+
+  /* 마무리 인사에 살짝 붙이는 신고 제안 */
+  function offerReport(block, money) {
+    if (!block) return;
+    var p = document.createElement("p");
+    p.className = "dim";
+    p.textContent = "원하면 신고까지 챙길게. 지금 바로 안 해도 돼.";
+    block.appendChild(p);
+    choices(block, [
+      { label: "신고 안내 볼게", value: "report" },
+      { label: "지금은 괜찮아", value: "later" }
+    ], function (v) {
+      if (v === "report") {
+        return showReport("좋아. 아래 번호로 연결돼. 지금 걸지 않아도 되고, 필요할 때 누르면 돼.", money);
+      }
+      addBot(["응, 알겠어. 나중에 필요하면 위쪽 **신고 안내**에서 언제든 볼 수 있어."]);
+    });
+  }
+
+  /* 헤더의 ‘신고 안내’ 시트 */
+  function openSheet() {
+    if (!sheet || !sheetBody) return;
+    sheetBody.innerHTML = "";
+
+    var lead = document.createElement("p");
+    lead.className = "sheet-lead";
+    lead.innerHTML = fmt("지금 바로 신고할 필요는 없어. 피해가 있었으면 이 번호로 연결해 줄게. 나는 기관에 직접 신고를 접수하지는 못하고, **전화 연결까지만** 도와줄 수 있어.");
+    sheetBody.appendChild(lead);
+    sheetBody.appendChild(reportCard(state.moneyLikely));
+
+    var acts = document.createElement("div");
+    acts.className = "sheet-actions";
+
+    var b1 = document.createElement("button");
+    b1.type = "button";
+    b1.className = "choice primary";
+    b1.textContent = "신고 전에 챙길 것 볼게";
+    b1.addEventListener("click", function () {
+      closeSheet();
+      reportPrep();
+    });
+
+    var b2 = document.createElement("button");
+    b2.type = "button";
+    b2.className = "choice";
+    b2.textContent = "닫기";
+    b2.addEventListener("click", closeSheet);
+
+    acts.appendChild(b1);
+    acts.appendChild(b2);
+    sheetBody.appendChild(acts);
+
+    sheet.hidden = false;
+    if (reportBtn) reportBtn.setAttribute("aria-expanded", "true");
+  }
+
+  function closeSheet() {
+    if (!sheet) return;
+    sheet.hidden = true;
+    if (reportBtn) reportBtn.setAttribute("aria-expanded", "false");
+  }
+
   /* ───────────────────────── 입력 해석 ───────────────────────── */
 
   var NOT_DONE = /(안\s*(눌렀|클릭|열었|입력|적었|받았|했)|않았|없었|못\s*받)/;
@@ -764,6 +1039,9 @@
     var t = raw.trim();
     var c = comfort(t);
 
+    /* 돈이 오간 사건이면 신고 번호에서 1332를 먼저 보여 준다 */
+    if (/(이체|송금|입금|결제|카드값|대출|상품권|돈을\s*보냈)/.test(t)) state.moneyLikely = true;
+
     /* 대기 중인 질문이 있어도, 새 문자·링크를 붙여넣으면 그 문자의 판별을 먼저 한다.
        판별이 끝나면 접어 둔 질문으로 돌아갈 버튼을 함께 보여 준다. */
     if (state.pending && looksLikeNewLetter(t)) {
@@ -776,6 +1054,13 @@
     if (state.pending === "steps") {
       if (/(모르|어디|못\s*찾|어떻게)/.test(t) && state.stepHint) return state.stepHint();
       if (/(다\s*확인|확인\s*했|확인\s*완료|다음|완료|했어|했음|응|네|ㅇㅇ)/.test(t) && state.stepNext) return state.stepNext();
+      return reaskPending();
+    }
+
+    /* 신고 전에 챙길 것 안내를 기다리는 중 */
+    if (state.pending === "report") {
+      if (/(어떻게|모르|못\s*찾|어디)/.test(t) && state.stepHint) return state.stepHint();
+      if (/(다\s*챙겼|확인\s*했|다음|완료|했어|했음|응|네|ㅇㅇ)/.test(t) && state.stepNext) return state.stepNext();
       return reaskPending();
     }
 
@@ -827,6 +1112,11 @@
     /* 이미 눌렀다는 말 */
     if (isClickedIntent(t) && !NOT_DONE.test(t)) {
       return flowClicked(c);
+    }
+
+    /* 신고 안내를 찾을 때 */
+    if (/(신고|118|112|1332)/.test(t) && !looksLikeNewLetter(t)) {
+      return showReport(null, state.moneyLikely);
     }
 
     /* 누르기 전 — 눌러도 되는지 묻는 말 */
@@ -923,10 +1213,28 @@
     chat.innerHTML = "";
     clearPending();
     state.caseHasInput = false;
+    state.moneyLikely = false;
     input.value = "";
     autoGrow();
+    closeSheet();
     flowGreet();
   });
+
+  if (reportBtn) {
+    reportBtn.addEventListener("click", function () {
+      if (sheet && !sheet.hidden) closeSheet();
+      else openSheet();
+    });
+  }
+
+  if (sheet) {
+    Array.prototype.forEach.call(sheet.querySelectorAll("[data-close]"), function (el) {
+      el.addEventListener("click", closeSheet);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !sheet.hidden) closeSheet();
+    });
+  }
 
   flowGreet();
   autoGrow();
