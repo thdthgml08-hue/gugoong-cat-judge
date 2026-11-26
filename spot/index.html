@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>햄찌 틀린 그림 찾기</title>
+<meta name="description" content="햄찌와 친구들이 나오는 그림 두 장에서 다른 곳을 찾는 미니게임.">
+<meta name="theme-color" content="#fff3dc">
+<style>
+@font-face { font-family: 'Galmuri11'; src: url('../assets/fonts/Galmuri11.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Galmuri11'; src: url('../assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+:root { --ink: #3a2a1c; --soft: #6b5540; --paper: #fffaf0; --cream: #fff3dc; --brown: #7a4f2a; --dark: #5a3720; --orange: #e59a3c; --pink: #c9567f; --good: #3f9a5c; --bad: #c94c40; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: #2b2420; color: var(--ink);
+  font-family: 'Galmuri11', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
+#app { position: relative; max-width: 480px; height: 100%; margin: 0 auto; overflow: hidden; touch-action: none; background: var(--cream); }
+#cv { display: block; width: 100%; height: 100%; }
+.hud { position: absolute; top: 0; left: 0; right: 0; padding: calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; font-weight: 700; pointer-events: none; }
+.hud > :first-child { justify-self: start; }
+.hud > :last-child { justify-self: end; }
+.chip { background: var(--paper); border: 2px solid var(--brown); border-radius: 999px; padding: 3px 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.found { font-size: 16px; color: var(--dark); }
+.bar { position: absolute; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); top: calc(46px + env(safe-area-inset-top));
+  height: 10px; border-radius: 999px; background: rgba(122,79,42,.18); overflow: hidden; pointer-events: none; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--good); transition: background .3s; }
+.bar.low i { background: var(--bad); }
+.foot { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.hint { font: inherit; font-weight: 700; font-size: 15px; color: var(--dark); background: #ffe7a3; border: 2px solid var(--dark); border-radius: 10px;
+  padding: 8px 14px; box-shadow: 0 3px 0 var(--dark); cursor: pointer; }
+.hint:disabled { opacity: .45; cursor: default; }
+.hint:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--dark); }
+.hint:focus-visible, .btn:focus-visible { outline: 3px solid #3f6fb5; outline-offset: 3px; }
+.tip { font-size: 12px; color: var(--soft); text-align: right; }
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px 16px; background: rgba(255, 243, 220, .94); }
+.overlay canvas { width: 150px; height: 112px; }
+h1 { margin: 8px 0 4px; font-size: 28px; color: var(--dark); }
+.sub { margin: 0 0 14px; color: var(--soft); font-size: 14px; }
+.rules { background: var(--paper); border: 2px solid var(--brown); border-radius: 10px; padding: 10px 14px; font-size: 14px; line-height: 1.8;
+  text-align: left; margin-bottom: 16px; box-shadow: 0 3px 0 rgba(90,55,32,.35); }
+.btn { font: inherit; font-weight: 700; font-size: 18px; color: #fff; background: var(--orange); border: 2px solid var(--dark);
+  border-radius: 10px; padding: 12px 32px; box-shadow: 0 4px 0 var(--dark); cursor: pointer; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--dark); }
+.best { margin-top: 14px; font-size: 13px; color: var(--soft); }
+.big { font-size: 44px; font-weight: 700; color: var(--dark); margin: 4px 0; font-variant-numeric: tabular-nums; }
+.stats { font-size: 14px; color: var(--soft); margin: 0 0 6px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv" aria-label="위아래 두 그림"></canvas>
+  <div class="hud">
+    <span class="chip" id="lvl">1단계</span>
+    <span class="found" id="found">0 / 5</span>
+    <span class="chip" id="score">0점</span>
+  </div>
+  <div class="bar" id="bar"><i id="barfill"></i></div>
+  <div class="foot">
+    <button class="hint" id="hint">💡 힌트 3</button>
+    <span class="tip">위나 아래 그림에서<br>다른 곳을 톡!</span>
+  </div>
+
+  <div class="overlay" id="title">
+    <canvas id="icon1" width="300" height="224"></canvas>
+    <h1>햄찌 틀린 그림 찾기</h1>
+    <p class="sub">위 그림이랑 아래 그림, 뭐가 달라졌을까?</p>
+    <div class="rules">
+      다른 곳을 톡! 위·아래 어디를 눌러도 돼<br>
+      찾을 때마다 <b>+100점</b> · 남은 시간은 보너스<br>
+      아무 데나 누르면 <b>시간 −5초</b> 😿<br>
+      💡 힌트는 한 판에 3번<br>
+      단계가 오를수록 더 꼭꼭 숨어 있다
+    </div>
+    <button class="btn" id="start">찾으러 가자!</button>
+    <p class="best" id="best1"></p>
+  </div>
+
+  <div class="overlay" id="over" hidden>
+    <canvas id="icon2" width="300" height="224"></canvas>
+    <h1 id="verdict">눈썰미 좋은데?</h1>
+    <div class="big" id="final">0</div>
+    <p class="stats" id="stats"></p>
+    <p class="sub" id="best2"></p>
+    <button class="btn" id="again">한 번 더</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const app = document.getElementById('app');
+  const $ = id => document.getElementById(id);
+  const TAU = Math.PI * 2;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    W = app.clientWidth; H = app.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout();
+  }
+
+  const store = {
+    get() { try { return +localStorage.getItem('spot-best') || 0; } catch { return 0; } },
+    set(v) { try { localStorage.setItem('spot-best', v); } catch {} },
+  };
+  let best = store.get();
+  const showBest = () => { $('best1').textContent = best ? `최고 기록 · ${best}점` : '최고 기록 · 아직 없다'; };
+  showBest();
+
+  let ac = null;
+  function beep(freq, dur = .07, type = 'square', vol = .05, slide = 0) {
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime;
+      o.type = type; o.frequency.setValueAtTime(freq, n);
+      if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, n + dur);
+      g.gain.setValueAtTime(vol, n); g.gain.exponentialRampToValueAtTime(.0001, n + dur);
+      o.connect(g).connect(ac.destination); o.start(n); o.stop(n + dur);
+    } catch {}
+  }
+
+  // ───────── 그림 재료 (햄찌 씨앗 비행과 같은 친구들) ─────────
+  function drawHamster(c, x, y, s, hat) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = hat; c.beginPath(); c.ellipse(0, -27, 11, 6, 0, Math.PI, 0); c.fill();
+    c.fillStyle = '#3f6fb5'; c.fillRect(-11, -28, 22, 3);
+    c.fillStyle = '#555'; c.fillRect(-1, -38, 2, 9);
+    c.fillStyle = '#f2c94c'; c.beginPath(); c.ellipse(-8, -38, 8, 2.5, 0, 0, TAU); c.fill();
+    c.fillStyle = '#4fb06d'; c.beginPath(); c.ellipse(8, -38, 8, 2.5, 0, 0, TAU); c.fill();
+    c.fillStyle = '#e6a25f'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 13, -18, 6, 0, TAU); c.fill(); }
+    c.fillStyle = '#f4b8b0'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 13, -18, 3.2, 0, TAU); c.fill(); }
+    c.fillStyle = '#e6a25f'; c.beginPath(); c.ellipse(0, 0, 22, 21, 0, 0, TAU); c.fill();
+    c.fillStyle = '#fff4e2'; c.beginPath(); c.ellipse(0, 8, 17, 13, 0, 0, TAU); c.fill();
+    for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 13, 2, 7, 0, TAU); c.fill(); }
+    c.fillStyle = 'rgba(240,130,130,.55)'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 14, 3, 3.2, 0, TAU); c.fill(); }
+    c.fillStyle = '#2a1a10'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 8, -5, 2.6, 0, TAU); c.fill(); }
+    c.fillStyle = '#fff'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 8 + .9, -6, .9, 0, TAU); c.fill(); }
+    c.fillStyle = '#d9787a'; c.beginPath(); c.arc(0, -1, 1.8, 0, TAU); c.fill();
+    c.strokeStyle = '#7a4f2a'; c.lineWidth = 1; c.beginPath(); c.arc(-1.6, 1.5, 1.6, 0, Math.PI); c.arc(1.6, 1.5, 1.6, 0, Math.PI); c.stroke();
+    c.fillStyle = '#f4b8b0'; for (const sx of [-1, 1]) { c.beginPath(); c.ellipse(sx * 5, 12, 3, 2.4, 0, 0, TAU); c.fill(); }
+    c.restore();
+  }
+  function drawButterfly(c, x, y, s, t, wings) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    const f = .55 + .45 * Math.abs(Math.sin(t * 4));
+    for (const sx of [-1, 1]) {
+      c.save(); c.scale(sx * f, 1);
+      c.fillStyle = wings[0]; c.beginPath(); c.ellipse(11, -7, 12, 10, -.5, 0, TAU); c.fill();
+      c.fillStyle = wings[1]; c.beginPath(); c.ellipse(9, 8, 8, 7, .5, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(14, -9, 3, 0, TAU); c.arc(10, 9, 2.2, 0, TAU); c.fill();
+      c.restore();
+    }
+    c.fillStyle = '#5a3a2a'; c.beginPath(); c.ellipse(0, 2, 3.2, 12, 0, 0, TAU); c.fill();
+    c.beginPath(); c.arc(0, -10, 5, 0, TAU); c.fill();
+    c.strokeStyle = '#5a3a2a'; c.lineWidth = 1.2;
+    for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 2, -14); c.quadraticCurveTo(sx * 5, -22, sx * 9, -22); c.stroke(); c.fillStyle = wings[0]; c.beginPath(); c.arc(sx * 9, -22, 1.8, 0, TAU); c.fill(); }
+    c.fillStyle = '#fff'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 2, -11, 1.4, 0, TAU); c.fill(); }
+    c.strokeStyle = '#fff'; c.lineWidth = .9; c.beginPath(); c.arc(0, -9, 1.6, .2, Math.PI - .2); c.stroke();
+    c.restore();
+  }
+  function drawCrow(c, x, y, s, flip) {
+    c.save(); c.translate(x, y); c.scale(flip ? -s : s, s);
+    c.fillStyle = '#2d2a33';
+    c.beginPath(); c.ellipse(0, 0, 14, 9, 0, 0, TAU); c.fill();
+    c.beginPath(); c.arc(-12, -4, 7, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(10, -2); c.lineTo(22, -6); c.lineTo(20, 4); c.fill();
+    c.fillStyle = '#3c3845'; c.beginPath(); c.moveTo(-4, -2); c.quadraticCurveTo(4, -14, 12, -8); c.lineTo(6, 2); c.fill();
+    c.fillStyle = '#f0a83a'; c.beginPath(); c.moveTo(-18, -5); c.lineTo(-25, -3); c.lineTo(-18, -1); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(-13, -6, 2, 0, TAU); c.fill();
+    c.fillStyle = '#000'; c.beginPath(); c.arc(-13.5, -6, 1, 0, TAU); c.fill();
+    c.restore();
+  }
+  function drawOwl(c, x, y, s, eye) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = '#5e4630'; for (const sx of [-1, 1]) { c.beginPath(); c.ellipse(sx * 17, 4, 7, 15, sx * .4, 0, TAU); c.fill(); }
+    c.fillStyle = '#7a5a3a'; c.beginPath(); c.ellipse(0, 2, 17, 21, 0, 0, TAU); c.fill();
+    for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 6, -16); c.lineTo(sx * 15, -26); c.lineTo(sx * 15, -12); c.fill(); }
+    c.fillStyle = '#d9c29a'; c.beginPath(); c.ellipse(0, 9, 11, 12, 0, 0, TAU); c.fill();
+    for (const sx of [-1, 1]) {
+      c.fillStyle = '#fff4d6'; c.beginPath(); c.arc(sx * 7, -6, 7, 0, TAU); c.fill();
+      c.fillStyle = eye; c.beginPath(); c.arc(sx * 7, -6, 4.6, 0, TAU); c.fill();
+      c.fillStyle = '#1a120c'; c.beginPath(); c.arc(sx * 7 - 1, -6, 2.6, 0, TAU); c.fill();
+    }
+    c.fillStyle = 'rgba(240,130,130,.6)'; for (const sx of [-1, 1]) { c.beginPath(); c.arc(sx * 12, 1, 2.5, 0, TAU); c.fill(); }
+    c.fillStyle = '#f0a83a'; c.beginPath(); c.moveTo(-2.5, -2); c.lineTo(2.5, -2); c.lineTo(0, 3); c.fill();
+    c.restore();
+  }
+  function drawFlower(c, x, y, s, petal, stem) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    if (stem) {
+      c.strokeStyle = '#4f8f3d'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, stem); c.stroke();
+      c.fillStyle = '#5fa34a'; c.beginPath(); c.ellipse(5, stem * .6, 6, 2.6, -.5, 0, TAU); c.fill();
+    }
+    c.fillStyle = petal;
+    for (let i = 0; i < 12; i++) { c.save(); c.rotate(i * TAU / 12); c.beginPath(); c.ellipse(0, -11, 3.5, 7, 0, 0, TAU); c.fill(); c.restore(); }
+    c.fillStyle = '#6b3f1e'; c.beginPath(); c.arc(0, 0, 7, 0, TAU); c.fill();
+    c.restore();
+  }
+  function drawSeed(c, x, y, s, rot) {
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s);
+    c.fillStyle = '#2b2622'; c.beginPath(); c.moveTo(0, -8); c.quadraticCurveTo(6, -2, 0, 8); c.quadraticCurveTo(-6, -2, 0, -8); c.fill();
+    c.strokeStyle = '#e9e2d4'; c.lineWidth = 1.1;
+    for (const sx of [-2, 0, 2]) { c.beginPath(); c.moveTo(sx * .8, -5); c.lineTo(sx, 5); c.stroke(); }
+    c.restore();
+  }
+  function drawHoney(c, x, y, s, lid) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = '#e8a93a'; c.beginPath(); c.ellipse(0, 2, 8, 7, 0, 0, TAU); c.fill();
+    c.fillStyle = lid; c.fillRect(-6, -6, 12, 3);
+    c.fillStyle = '#ffd86b'; c.beginPath(); c.moveTo(-6, -3); c.quadraticCurveTo(-4, 3, -2, -3); c.quadraticCurveTo(2, 1, 6, -3); c.lineTo(6, -2); c.lineTo(-6, -2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.ellipse(-3.5, 2, 1.5, 3, 0, 0, TAU); c.fill();
+    c.restore();
+  }
+  function drawMushroom(c, x, y, s, cap, dots) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = '#fff4e2'; c.fillRect(-4, -6, 8, 10);
+    c.fillStyle = cap; c.beginPath(); c.ellipse(0, -6, 12, 9, 0, Math.PI, 0); c.fill();
+    c.fillStyle = '#fff';
+    const P = [[-6, -9], [1, -12], [6, -8], [-1, -8], [-8, -6]];
+    for (let i = 0; i < dots; i++) { c.beginPath(); c.arc(P[i][0], P[i][1], 1.8, 0, TAU); c.fill(); }
+    c.restore();
+  }
+  function drawKite(c, x, y, s, col) {
+    c.save(); c.translate(x, y); c.rotate(.15); c.scale(s, s);
+    c.strokeStyle = '#6b5540'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, 22); c.lineTo(4, 32); c.lineTo(-3, 42); c.lineTo(3, 52); c.stroke();
+    const P = [[0, -20], [15, 0], [0, 22], [-15, 0]];
+    for (let i = 0; i < 4; i++) { c.fillStyle = col[i % 2]; c.beginPath(); c.moveTo(0, 0); c.lineTo(...P[i]); c.lineTo(...P[(i + 1) % 4]); c.closePath(); c.fill(); }
+    c.strokeStyle = '#5a3720'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(0, -20); c.lineTo(0, 22); c.moveTo(-15, 0); c.lineTo(15, 0); c.stroke();
+    c.restore();
+  }
+  function drawCloud(c, x, y, s) {
+    c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = '#ffffff';
+    for (const [cx, cy, r] of [[-16, 2, 11], [0, -5, 15], [17, 2, 11], [6, 6, 10], [-6, 6, 10]]) { c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill(); }
+    c.restore();
+  }
+  function drawSun(c, x, y, s, col, moon) {
+    c.save(); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = col; c.beginPath(); c.arc(0, 0, 18, 0, TAU); c.fill();
+    if (moon) { c.fillStyle = 'rgba(180,170,140,.35)'; c.beginPath(); c.arc(-6, -4, 4, 0, TAU); c.arc(5, 6, 3, 0, TAU); c.fill(); }
+    c.restore();
+  }
+
+  // ───────── 장면 ─────────
+  const LW = 400, LH = 300, GROUND = 205;   // 논리 좌표: 위 205까지 하늘, 아래는 들판
+  const THEMES = [
+    { name: '낮', sky: ['#9fd3f0', '#e9f6fb'], ground: '#9fd08a', ground2: '#86c070', sun: '#fff0a0', moon: false },
+    { name: '노을', sky: ['#f29a7a', '#fde0b0'], ground: '#c8b062', ground2: '#b39a4e', sun: '#ffc278', moon: false },
+    { name: '밤', sky: ['#28306a', '#58609c'], ground: '#3d6a4c', ground2: '#335a40', sun: '#f4efd0', moon: true },
+  ];
+  const PETALS = ['#f6c431', '#e8574a', '#f6a6c1', '#9b7fe0', '#ffffff'];
+  const WINGS = [['#f6a6c1', '#c9a3e6'], ['#8fd0f0', '#b5e3a0'], ['#f6c431', '#f29a5a']];
+  const KITES = [['#e8574a', '#f2c94c'], ['#3f6fb5', '#fff4e2'], ['#4fb06d', '#f6a6c1']];
+  const HATS = ['#e8574a', '#4fb06d', '#9b7fe0'];
+  const CAPS = ['#e8574a', '#9b7fe0', '#e59a3c'];
+  // 물건마다 기본 크기(반지름)와, 바꿀 수 있는 방법. '쉬움'은 1단계부터, 나머지는 2단계부터
+  const KINDS = {
+    hamster:   { r: 30, easy: ['hat'],              hard: [] },
+    butterfly: { r: 22, easy: ['remove', 'color'],  hard: ['scale'] },
+    crow:      { r: 24, easy: ['remove'],           hard: ['flip', 'scale'] },
+    owl:       { r: 26, easy: ['remove'],           hard: ['eye'] },
+    flower:    { r: 18, easy: ['remove', 'color'],  hard: ['scale'] },
+    cloud:     { r: 26, easy: ['remove'],           hard: ['scale'] },
+    seed:      { r: 12, easy: ['remove'],           hard: ['rot'] },
+    honey:     { r: 14, easy: ['remove'],           hard: ['lid'] },
+    mushroom:  { r: 14, easy: ['remove', 'color'],  hard: ['dots'] },
+    kite:      { r: 24, easy: ['remove', 'color'],  hard: [] },
+    sun:       { r: 22, easy: ['color'],            hard: ['scale'] },
+  };
+
+  function newObj(type, x, y, extra = {}) { return { type, x, y, s: 1, flip: false, rot: 0, ...extra }; }
+  function place(objs, type, region, extra) {
+    const R = KINDS[type].r;
+    for (let tries = 0; tries < 60; tries++) {
+      const x = rnd(region[0], region[1]), y = rnd(region[2], region[3]);
+      if (objs.every(o => Math.hypot(o.x - x, o.y - y) > KINDS[o.type].r * o.s + R + 6)) { const o = newObj(type, x, y, extra()); objs.push(o); return o; }
+    }
+    return null;
+  }
+
+  function genLevel(n) {
+    const th = THEMES[(n - 1) % THEMES.length], objs = [];
+    const SKY = [30, 370, 28, 170], LAND = [30, 370, 222, 282];
+    objs.push(newObj('sun', rnd(300, 360), rnd(38, 60), { col: th.sun }));
+    place(objs, 'hamster', [140, 260, 240, 262], () => ({ hat: pick(HATS) }));
+    for (let i = 0; i < 3; i++) place(objs, 'cloud', [30, 290, 30, 120], () => ({ s: rnd(.8, 1.1) }));
+    place(objs, 'butterfly', SKY, () => ({ wings: pick(WINGS), ph: rnd(0, 6) }));
+    if (n >= 2 || Math.random() < .5) place(objs, 'butterfly', SKY, () => ({ wings: pick(WINGS), ph: rnd(0, 6) }));
+    place(objs, 'crow', SKY, () => ({ flip: Math.random() < .5 }));
+    if (th.moon || Math.random() < .5) place(objs, 'owl', SKY, () => ({ eye: '#f2c94c' }));
+    if (Math.random() < .6) place(objs, 'kite', SKY, () => ({ col: pick(KITES) }));
+    for (let i = 0; i < 4 + Math.min(n, 4); i++) place(objs, 'flower', LAND, () => ({ col: pick(PETALS) }));
+    for (let i = 0; i < 2; i++) place(objs, 'mushroom', LAND, () => ({ col: pick(CAPS), dots: 3 + Math.floor(Math.random() * 3) }));
+    place(objs, 'honey', LAND, () => ({ lid: '#b7772a' }));
+    for (let i = 0; i < 3 + Math.min(n, 3); i++) place(objs, 'seed', LAND, () => ({ rot: rnd(-.6, .6) }));
+
+    // 틀린 곳 고르기: 서로 너무 붙지 않게
+    const k = Math.min(4 + n, 8);
+    const diffs = [], B = objs.map(o => ({ ...o }));
+    for (const i of shuffle(objs.map((_, i) => i))) {
+      if (diffs.length >= k) break;
+      const o = objs[i], K = KINDS[o.type];
+      const muts = n === 1 ? K.easy : K.easy.concat(K.hard, K.hard);   // 2단계부터 미묘한 변화가 더 잘 나옴
+      if (!muts.length || diffs.some(d => Math.hypot(d.x - o.x, d.y - o.y) < 46)) continue;
+      const m = pick(muts), b = B[i];
+      if (m === 'remove') b.hidden = true;
+      else if (m === 'color') b.type === 'butterfly' ? b.wings = pick(WINGS.filter(w => w !== o.wings)) : b.type === 'kite' ? b.col = pick(KITES.filter(w => w !== o.col)) : b.type === 'mushroom' ? b.col = pick(CAPS.filter(cc => cc !== o.col)) : b.type === 'sun' ? b.col = (th.moon ? '#ffd27a' : '#ffb04a') : b.col = pick(PETALS.filter(cc => cc !== o.col));
+      else if (m === 'hat') b.hat = pick(HATS.filter(h => h !== o.hat));
+      else if (m === 'scale') b.s = o.s * (Math.random() < .5 ? 1.4 : .65);
+      else if (m === 'flip') b.flip = !o.flip;
+      else if (m === 'rot') b.rot = o.rot + (Math.random() < .5 ? 1.4 : -1.4);
+      else if (m === 'eye') b.eye = '#e8743a';
+      else if (m === 'lid') b.lid = '#e8574a';
+      else if (m === 'dots') b.dots = o.dots >= 4 ? o.dots - 2 : o.dots + 2;
+      diffs.push({ x: o.x, y: o.y - (o.type === 'hamster' ? 8 : o.type === 'flower' ? 10 : 0), r: Math.max(18, K.r * Math.max(o.s, b.s)), found: false, m });
+    }
+    // 가끔은 아래 그림에만 새로 생긴 것도
+    if (diffs.length < k) {
+      const add = place(B, Math.random() < .5 ? 'flower' : 'seed', LAND, () => ({ col: pick(PETALS), rot: rnd(-.6, .6) }));
+      if (add && !diffs.some(d => Math.hypot(d.x - add.x, d.y - add.y) < 46)) diffs.push({ x: add.x, y: add.y - (add.type === 'flower' ? 10 : 0), r: 18, found: false, m: 'add' });
+    }
+    return { th, A: objs, B, diffs };
+  }
+
+  const ORDER = ['sun', 'cloud', 'kite', 'owl', 'crow', 'butterfly', 'mushroom', 'honey', 'seed', 'flower', 'hamster'];
+  function drawScene(c, th, list, time) {
+    const sky = c.createLinearGradient(0, 0, 0, GROUND);
+    sky.addColorStop(0, th.sky[0]); sky.addColorStop(1, th.sky[1]);
+    c.fillStyle = sky; c.fillRect(0, 0, LW, GROUND);
+    if (th.moon) { c.fillStyle = 'rgba(255,250,220,.8)'; for (let i = 0; i < 24; i++) c.fillRect((i * 97) % LW, (i * 53) % 150 + 8, 2, 2); }
+    c.fillStyle = th.ground2; c.beginPath(); c.ellipse(90, GROUND + 6, 150, 34, 0, Math.PI, 0); c.ellipse(320, GROUND + 6, 130, 28, 0, Math.PI, 0); c.fill();
+    c.fillStyle = th.ground; c.fillRect(0, GROUND, LW, LH - GROUND);
+    const sorted = list.filter(o => !o.hidden).sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type) || a.y - b.y);
+    for (const o of sorted) {
+      switch (o.type) {
+        case 'sun': drawSun(c, o.x, o.y, o.s, o.col, th.moon); break;
+        case 'cloud': drawCloud(c, o.x, o.y, o.s); break;
+        case 'kite':
+          c.strokeStyle = 'rgba(90,55,32,.6)'; c.lineWidth = 1; c.beginPath(); c.moveTo(o.x, o.y + 22 * o.s); c.lineTo(o.x + 40, GROUND); c.stroke();
+          drawKite(c, o.x, o.y, o.s, o.col); break;
+        case 'owl': drawOwl(c, o.x, o.y, o.s * .9, o.eye); break;
+        case 'crow': drawCrow(c, o.x, o.y, o.s * 1.1, o.flip); break;
+        case 'butterfly': drawButterfly(c, o.x, o.y, o.s * 1.05, time + o.ph, o.wings); break;
+        case 'mushroom': drawMushroom(c, o.x, o.y, o.s * 1.2, o.col, o.dots); break;
+        case 'honey': drawHoney(c, o.x, o.y, o.s * 1.5, o.lid); break;
+        case 'seed': drawSeed(c, o.x, o.y, o.s * 1.3, o.rot); break;
+        case 'flower': drawFlower(c, o.x, o.y - 10, o.s * .85, o.col, 14); break;
+        case 'hamster': drawHamster(c, o.x, o.y, o.s * 1.25, o.hat); break;
+      }
+    }
+  }
+
+  // ───────── 배치 ─────────
+  let panels = [];
+  function layout() {
+    const top = 66 + (parseFloat(getComputedStyle(app).paddingTop) || 0), bottom = 70, gap = 12;
+    const availH = H - top - bottom - gap;
+    let pw = Math.min(W - 32, availH / 2 * LW / LH);
+    const ph = pw * LH / LW, x = (W - pw) / 2;
+    const y0 = top + (availH - ph * 2) / 2;
+    panels = [{ x, y: y0, w: pw, h: ph, sc: pw / LW, label: '위' }, { x, y: y0 + ph + gap, w: pw, h: ph, sc: pw / LW, label: '아래' }];
+  }
+  addEventListener('resize', resize); resize();
+
+  // ───────── 게임 상태 ─────────
+  let running = false, level = 1, lv = null, timeLeft = 60, timeMax = 60, score = 0, hints = 3, marks = [], pulse = null, clearT = 0, foundTotal = 0, t = 0, revealT = 0;
+  function startLevel() {
+    lv = genLevel(level);
+    timeMax = Math.max(40, 62 - (level - 1) * 4); timeLeft = timeMax;
+    marks = []; pulse = null; clearT = 0;
+    updateHud();
+  }
+  function updateHud() {
+    $('lvl').textContent = `${level}단계`;
+    $('found').textContent = lv ? `${lv.diffs.filter(d => d.found).length} / ${lv.diffs.length}` : '';
+    $('score').textContent = `${score}점`;
+    $('hint').textContent = `💡 힌트 ${hints}`;
+    $('hint').disabled = !running || hints <= 0 || clearT > 0;
+  }
+
+  function tap(px, py) {
+    if (!running || clearT > 0 || revealT > 0) return;
+    const p = panels.find(p => px >= p.x && px <= p.x + p.w && py >= p.y && py <= p.y + p.h);
+    if (!p) return;
+    const lx = (px - p.x) / p.sc, ly = (py - p.y) / p.sc, tol = 10 / p.sc;
+    const d = lv.diffs.find(d => !d.found && Math.hypot(d.x - lx, d.y - ly) < d.r + tol);
+    if (d) {
+      d.found = true; score += 100; foundTotal++;
+      beep(880, .08, 'square', .05); setTimeout(() => beep(1320, .1, 'square', .05), 80);
+      if (pulse === d) pulse = null;
+      if (lv.diffs.every(d => d.found)) {
+        const bonus = Math.ceil(timeLeft) * 10; score += bonus; clearT = 1.8;
+        marks.push({ kind: 'clear', txt: `다 찾았다! +${bonus}`, life: 1.8 });
+        [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => beep(f, .12, 'square', .05), i * 100));
+      }
+    } else {
+      timeLeft = Math.max(0, timeLeft - 5);
+      marks.push({ kind: 'miss', x: lx, y: ly, life: .9 });
+      beep(150, .2, 'sawtooth', .06, .6);
+      if (navigator.vibrate) navigator.vibrate(60);
+    }
+    updateHud();
+  }
+  cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); tap(e.clientX - r.left, e.clientY - r.top); });
+  $('hint').addEventListener('click', () => {
+    if (!running || hints <= 0 || clearT > 0) return;
+    const d = lv.diffs.find(d => !d.found); if (!d) return;
+    hints--; pulse = d; pulse.t = 2.2; beep(660, .15, 'sine', .05, 1.5); updateHud();
+  });
+
+  function step(dt) {
+    t += dt;
+    if (!running) return;
+    if (revealT > 0) { revealT -= dt; if (revealT <= 0) showOver(); return; }
+    if (clearT > 0) { clearT -= dt; if (clearT <= 0) { level++; startLevel(); } }
+    else {
+      timeLeft -= dt;
+      if (timeLeft <= 0) { timeLeft = 0; revealT = 2.2; beep(300, .4, 'triangle', .07, .5); updateHud(); }
+    }
+    for (const m of marks) m.life -= dt;
+    marks = marks.filter(m => m.life > 0);
+    if (pulse) { pulse.t -= dt; if (pulse.t <= 0) pulse = null; }
+    const f = timeLeft / timeMax;
+    $('barfill').style.width = `${clamp(f, 0, 1) * 100}%`;
+    $('bar').classList.toggle('low', timeLeft < 10);
+  }
+
+  function draw() {
+    ctx.fillStyle = '#fff3dc'; ctx.fillRect(0, 0, W, H);
+    if (!lv) return;
+    panels.forEach((p, i) => {
+      ctx.save();
+      ctx.fillStyle = '#5a3720'; ctx.fillRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6);
+      ctx.beginPath(); ctx.rect(p.x, p.y, p.w, p.h); ctx.clip();
+      ctx.translate(p.x, p.y); ctx.scale(p.sc, p.sc);
+      drawScene(ctx, lv.th, i === 0 ? lv.A : lv.B, t);
+      // 찾은 곳 동그라미
+      ctx.lineWidth = 3.5;
+      for (const d of lv.diffs) {
+        if (d.found) { ctx.strokeStyle = '#e8574a'; ctx.beginPath(); ctx.arc(d.x, d.y, d.r + 4, 0, TAU); ctx.stroke(); }
+        else if (revealT > 0) { ctx.strokeStyle = '#3f6fb5'; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.arc(d.x, d.y, d.r + 4, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+      }
+      if (pulse) {
+        const a = .35 + .3 * Math.sin(t * 10);
+        ctx.fillStyle = `rgba(255,214,90,${a})`; ctx.beginPath(); ctx.arc(pulse.x, pulse.y, pulse.r + 14, 0, TAU); ctx.fill();
+      }
+      for (const m of marks) {
+        if (m.kind !== 'miss') continue;
+        ctx.globalAlpha = Math.min(1, m.life * 2); ctx.strokeStyle = '#c94c40'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(m.x - 9, m.y - 9); ctx.lineTo(m.x + 9, m.y + 9); ctx.moveTo(m.x + 9, m.y - 9); ctx.lineTo(m.x - 9, m.y + 9); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      // 패널 이름표
+      ctx.font = '700 12px Galmuri11, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      const tw = ctx.measureText(p.label).width + 12;
+      ctx.fillStyle = 'rgba(255,250,240,.9)'; ctx.fillRect(p.x + 6, p.y + 6, tw, 18);
+      ctx.fillStyle = '#5a3720'; ctx.fillText(p.label, p.x + 12, p.y + 9);
+    });
+    // 큰 알림
+    const msg = marks.find(m => m.kind === 'clear');
+    const text = msg ? msg.txt : revealT > 0 ? '시간 끝! 여기였어' : null;
+    if (text) {
+      ctx.font = '700 24px Galmuri11, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const y = panels[1].y - 6;
+      ctx.fillStyle = 'rgba(255,250,240,.92)'; ctx.fillRect(0, y - 24, W, 48);
+      ctx.fillStyle = msg ? '#c9567f' : '#3f6fb5'; ctx.fillText(text, W / 2, y);
+    }
+  }
+
+  let last = 0;
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+    step(dt); draw();
+    requestAnimationFrame(loop);
+  }
+
+  function start() {
+    $('title').hidden = true; $('over').hidden = true;
+    level = 1; score = 0; hints = 3; foundTotal = 0; revealT = 0; running = true;
+    startLevel(); beep(520, .1, 'square', .05, 2);
+  }
+  function showOver() {
+    running = false;
+    const isBest = score > best;
+    if (isBest) { best = score; store.set(best); }
+    $('final').textContent = `${score}점`;
+    $('stats').textContent = `${level}단계까지 · 찾은 곳 ${foundTotal}개`;
+    $('verdict').textContent = level >= 6 ? '매의 눈… 아니 햄찌의 눈 👀' : level >= 4 ? '눈썰미 대장' : level >= 2 ? '눈썰미 좋은데?' : '다음엔 더 찾을 수 있어!';
+    $('best2').textContent = isBest ? '새 최고 기록!' : `최고 기록 · ${best}점`;
+    $('over').hidden = false; showBest(); updateHud();
+  }
+
+  // 타이틀 그림
+  function drawIcon(id) {
+    const c = $(id).getContext('2d'), demo = genLevel(1);
+    c.save(); c.scale(300 / LW, 224 / LH); drawScene(c, demo.th, demo.A, 0); c.restore();
+  }
+  drawIcon('icon1'); drawIcon('icon2');
+
+  window.__spot = { get state() { return { running, level, timeLeft, score, hints, diffs: lv && lv.diffs.map(d => ({ ...d })) }; }, panels: () => panels, tap };
+  $('start').onclick = start;
+  $('again').onclick = start;
+  lv = genLevel(1);
+  updateHud();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
