@@ -213,9 +213,9 @@
       reason: "비밀번호·인증번호 같은 걸 요구하는 문구가 있어. 기관이나 은행은 문자로 먼저 이걸 묻지 않아." },
     { key: "link", re: /(https?:\/\/|www\.|\.com|\.kr|\.ly|bit\.ly|me2\.do|\.app|링크|클릭|눌러서|주소를\s*누르)/i,
       reason: "링크 주소가 들어 있어. 짧은 주소나 낯선 도메인은 특히 조심해야 해." },
-    { key: "urgency", re: /(오늘\s*안에|오늘까지|지금\s*바로|즉시|긴급|24시간|마감|최종|내일까지|며칠\s*안에|곧\s*(차단|정지|삭제|반송))/,
+    { key: "urgency", re: /(오늘\s*안에|오늘까지|지금\s*바로|즉시|긴급|급하게|급한|24시간|마감|최종|내일까지|며칠\s*안에|곧\s*(차단|정지|삭제|반송))/,
       reason: "‘오늘 안에’, ‘지금 바로’처럼 재촉하는 문구가 있어. 재촉은 판단을 흐리게 만드는 수법이야." },
-    { key: "money", re: /(결제|입금|환불|청구|미납|요금|송금|상품권|대출|카드값)/,
+    { key: "money", re: /(결제|입금|환불|청구|미납|요금|송금|상품권|대출|카드값|만\s*원|돈\s*(좀|보내|줘))/,
       reason: "결제·환불·입금을 언급하는 부분이 있어." },
     { key: "family", re: /(엄마|아빠|아들|딸|누나|형|가족|액정|폰이\s*깨|새\s*번호|나야|효자|효녀)/,
       reason: "가족을 사칭하는 문구가 있어. 가족은 보통 새 번호로 급하게 돈을 부탁하지 않아." },
@@ -234,8 +234,7 @@
 
     var level = "확인 필요";
     if (keys.credential ||
-        (keys.urgency && keys.link) ||
-        (keys.money && keys.link) ||
+        (keys.link && hits.length >= 2) ||
         (keys.app && keys.link) ||
         (keys.family && keys.money)) {
       level = "위험";
@@ -258,7 +257,7 @@
     var titles = {
       "위험": "위험 신호가 여러 개 겹쳐 있어",
       "주의": "조심해야 할 신호가 있어",
-      "확인 필요": "확인이 필요해"
+      "확인 필요": "단정할 수 없어"
     };
 
     return { level: level, reasons: reasons, title: titles[level] };
@@ -358,7 +357,8 @@
       return;
     }
     if (hasFile) {
-      flowInstallQuestion(hasInput);
+      if (hasInput) return flowBoth();
+      flowInstallQuestion(false);
       return;
     }
     if (hasInput) {
@@ -709,6 +709,8 @@
     chat.innerHTML = "";
     state.pending = null;
     state.caseHasInput = false;
+    input.value = "";
+    autoGrow();
     flowGreet();
   });
 
