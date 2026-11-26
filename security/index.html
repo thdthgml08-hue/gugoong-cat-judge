@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>구공이(902) 보안 친구</title>
+<meta name="description" content="수상한 문자·링크를 같이 봐 주는 침착한 보안 친구, 구공이(902). 누르기 전에 같이 보고, 이미 눌렀으면 하나씩 챙긴다.">
+<meta name="theme-color" content="#f7ecd8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="구공이 902">
+<link rel="icon" href="../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-cat" src="../assets/icon-180.png" alt="구공이" width="42" height="42">
+      <div class="brand-text">
+        <h1>구공이<span class="num">(902)</span></h1>
+        <p>보안 친구</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="demo-badge" title="미리 짜인 대화로 체험하는 데모야">데모</span>
+      <button type="button" id="reset" class="icon-btn" title="대화 초기화" aria-label="대화 초기화">
+        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.6 5.9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M4 6.5v5.2h5.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="chat" class="chat" aria-live="polite" aria-label="구공이와의 대화"></main>
+
+  <div class="dock">
+    <p class="safety" role="note">
+      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.3-2.9 7.6-7 9.5-4.1-1.9-7-5.2-7-9.5V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.2 12.2l2 2 3.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      비밀번호·인증번호·카드번호·주민번호는 절대 입력하지 마세요.
+    </p>
+
+    <div id="quickstart" class="quickstart" aria-label="빠른 시작">
+      <button type="button" class="chip">택배 문자가 왔는데 눌러도 돼?</button>
+      <button type="button" class="chip">사실 이미 눌렀어...</button>
+      <button type="button" class="chip">주소도 입력했고 파일도 받았어</button>
+    </div>
+
+    <form id="composer" class="composer" autocomplete="off">
+      <textarea id="input" rows="1" placeholder="문자 내용을 붙여넣거나 상황을 적어 줘" aria-label="메시지 입력"></textarea>
+      <button type="submit" id="send" class="send" aria-label="보내기">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 11.5L20 4l-6.2 16-2.3-6.4L4 11.5z" fill="currentColor"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<noscript><p style="padding:20px;font-family:sans-serif">자바스크립트를 켜야 구공이와 대화할 수 있어.</p></noscript>
+
+<script src="app.js"></script>
+</body>
+</html>
