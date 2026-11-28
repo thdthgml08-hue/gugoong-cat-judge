@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>구공이 놀이터 · 한 곳에 모아 둔 방 네 개</title>
+<meta name="description" content="구공이 채점소, 햄찌 씨앗 비행, 3D 관찰소, 구공이(902) 보안 친구를 한 화면에서 고르는 안내판.">
+<link rel="icon" href="../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<style>
+@font-face { font-family:'Galmuri11'; src:url('../assets/fonts/Galmuri11.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Galmuri11'; src:url('../assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+:root{
+  --cream:#f7e9d0; --paper:#fffaf0; --ink:#33241a; --ink-soft:#6b5540;
+  --brown:#7a4f2a; --brown-dark:#5a3720; --orange:#d98b4a; --green:#5f8a68;
+  --shadow:0 3px 0 rgba(90,55,32,.35);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:#2a2018;color:var(--ink);
+  font-family:'Galmuri11','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;}
+body{min-height:100%;display:flex;justify-content:center;padding:20px 16px 40px;}
+.wrap{width:100%;max-width:520px;}
+header{text-align:center;padding:6px 0 18px;}
+header img{width:96px;height:96px;image-rendering:pixelated;}
+h1{margin:8px 0 6px;font-size:24px;color:var(--cream);letter-spacing:-.5px;}
+header p{margin:0;color:#c9b28f;font-size:13px;line-height:1.6;}
+.list{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+a.card{display:block;text-decoration:none;color:var(--ink);background:var(--paper);
+  border:3px solid var(--brown);border-radius:14px;padding:16px 16px 14px;
+  box-shadow:var(--shadow);transition:transform .06s ease;}
+a.card:active{transform:translateY(2px);box-shadow:none;}
+.card .tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:999px;
+  background:var(--cream);border:2px solid var(--brown);color:var(--brown-dark);margin-bottom:8px;}
+.card .tag.sec{background:#fde3e0;border-color:#b1544c;color:#8d3f39;}
+.card .tag.new{background:#e3efdf;border-color:var(--green);color:#456b4c;}
+.card h2{margin:0 0 6px;font-size:18px;line-height:1.35;}
+.card p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.65;}
+.card .go{margin-top:10px;font-size:12px;color:var(--orange);}
+footer{margin-top:22px;text-align:center;color:#8f7a5e;font-size:11px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="../assets/gugoong.png" alt="구공이">
+    <h1>구공이 놀이터</h1>
+    <p>구공이랑 노는 방 네 개. 들어가고 싶은 방을 누르면 돼요.</p>
+  </header>
+
+  <div class="list">
+    <a class="card" href="../security/">
+      <span class="tag sec">보안</span>
+      <h2>구공이(902) 보안 친구</h2>
+      <p>수상한 문자나 링크를 같이 봐 주고, 이미 눌렀으면 하나씩 챙겨요. 신고 번호도 있어요.</p>
+      <div class="go">들어가기 →</div>
+    </a>
+
+    <a class="card" href="../">
+      <span class="tag">게임</span>
+      <h2>구공이 90점 채점소</h2>
+      <p>집 안과 골목을 걸으며 인간을 관찰하고, 점수 팻말을 들어 채점하는 2D 게임.</p>
+      <div class="go">들어가기 →</div>
+    </a>
+
+    <a class="card" href="../3d/">
+      <span class="tag">게임</span>
+      <h2>구공이 장난 관찰소 (3D)</h2>
+      <p>고양이 눈높이 40cm에서 1인칭 구공이가 되어 인간 여섯을 몰래 관찰하고 발목을 톡.</p>
+      <div class="go">들어가기 →</div>
+    </a>
+
+    <a class="card" href="../minigame/">
+      <span class="tag">게임</span>
+      <h2>햄찌 씨앗 비행</h2>
+      <p>프로펠러 모자를 쓴 햄스터가 하늘을 날며 해바라기씨를 모으고 보스와 싸워요.</p>
+      <div class="go">들어가기 →</div>
+    </a>
+  </div>
+
+  <footer>
+    만든 사람 송소희 · 쿠아 · 클로드 · 챗GPT<br>
+    구공이 프로젝트 · 2026
+  </footer>
+</div>
+</body>
+</html>
