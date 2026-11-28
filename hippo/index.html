@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>하마 먹보 · 과일 받아 먹기</title>
+<meta name="description" content="강가에 앉은 하마를 좌우로 움직여 떨어지는 과일을 입으로 받아 먹는 미니게임. 쓰레기는 피해야 한다.">
+<link rel="icon" href="../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<style>
+@font-face { font-family:'Galmuri11'; src:url('../assets/fonts/Galmuri11.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Galmuri11'; src:url('../assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+:root{
+  --cream:#f7e9d0; --paper:#fffaf0; --ink:#33241a; --ink-soft:#6b5540;
+  --brown:#7a4f2a; --brown-dark:#5a3720; --orange:#d98b4a;
+  --shadow:0 3px 0 rgba(90,55,32,.35);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;}
+html,body{margin:0;height:100%;background:#2a2018;color:var(--ink);
+  font-family:'Galmuri11','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;overflow:hidden;}
+body{display:flex;align-items:center;justify-content:center;}
+#stage{position:relative;width:100%;height:100%;max-width:520px;max-height:900px;overflow:hidden;background:#bfe3ef;}
+canvas{display:block;width:100%;height:100%;touch-action:none;}
+.hud{position:absolute;left:0;right:0;top:0;padding:10px 12px;display:flex;justify-content:space-between;
+  font-size:14px;color:var(--brown-dark);pointer-events:none;}
+.hud b{background:rgba(255,250,240,.82);border:2px solid var(--brown);border-radius:999px;padding:4px 10px;}
+.panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;background:rgba(42,32,24,.72);color:var(--cream);text-align:center;padding:24px;}
+.panel h1{margin:0;font-size:24px;}
+.panel p{margin:0;font-size:13px;line-height:1.7;color:#e6d5b6;}
+.panel button{font-family:inherit;font-size:16px;padding:12px 22px;border-radius:12px;border:3px solid var(--brown);
+  background:var(--paper);color:var(--brown-dark);box-shadow:var(--shadow);cursor:pointer;}
+.panel button:active{transform:translateY(2px);box-shadow:none;}
+.panel .score{font-size:15px;color:#f3d9a4;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div class="hud">
+    <b id="scoreEl">먹은 과일 0</b>
+    <b id="lifeEl">쓰레기 0 / 3</b>
+  </div>
+
+  <div class="panel" id="startPanel">
+    <h1>하마 먹보</h1>
+    <p>하마를 좌우로 움직여 떨어지는 과일을<br>입으로 받아 먹어요.<br>쓰레기를 먹으면 콧물이 나요 — 3번이면 끝!</p>
+    <button id="startBtn">시작하기</button>
+    <p style="font-size:11px;color:#b8a68c">좌우로 드래그하거나 화면을 눌러도 돼요</p>
+  </div>
+
+  <div class="panel" id="overPanel" hidden>
+    <h1>배불러요</h1>
+    <div class="score" id="overScore"></div>
+    <button id="againBtn">한 판 더</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const stage = document.getElementById('stage');
+  const scoreEl = document.getElementById('scoreEl');
+  const lifeEl = document.getElementById('lifeEl');
+  const startPanel = document.getElementById('startPanel');
+  const overPanel = document.getElementById('overPanel');
+  const overScore = document.getElementById('overScore');
+
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.round(r.width);
+    H = Math.round(r.height);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (game.hippo) {
+      game.hippo.x = Math.min(game.hippo.x, W - game.hippo.w / 2 - 6);
+      game.hippo.x = Math.max(game.hippo.x, game.hippo.w / 2 + 6);
+    }
+  }
+
+  const FRUITS = [
+    { emoji: '🍉', size: 30, pts: 3 },
+    { emoji: '🍎', size: 26, pts: 1 },
+    { emoji: '🍊', size: 26, pts: 1 },
+    { emoji: '🍌', size: 26, pts: 1 },
+    { emoji: '🍇', size: 24, pts: 2 },
+    { emoji: '🍍', size: 30, pts: 2 },
+  ];
+  const TRASH = ['🗑️', '🥫', '🧦', '🪨'];
+
+  const game = {
+    running: false,
+    hippo: null,
+    drops: [],
+    score: 0,
+    trash: 0,
+    spawnT: 0,
+    spawnGap: 0.95,
+    t: 0,
+    shake: 0,
+    flash: null,
+    pops: [],
+  };
+
+  function reset() {
+    game.score = 0;
+    game.trash = 0;
+    game.drops = [];
+    game.spawnT = 0;
+    game.spawnGap = 0.95;
+    game.t = 0;
+    game.shake = 0;
+    game.flash = null;
+    game.pops = [];
+    game.hippo = { x: W / 2, y: H * 0.80, w: Math.min(150, W * 0.40), mouthOpen: 1 };
+    updateHud();
+  }
+
+  function updateHud() {
+    scoreEl.textContent = '먹은 과일 ' + game.score;
+    lifeEl.textContent = '쓰레기 ' + game.trash + ' / 3';
+  }
+
+  function spawn() {
+    const isTrash = Math.random() < 0.26;
+    const r = Math.random();
+    const item = isTrash
+      ? { emoji: TRASH[(Math.random() * TRASH.length) | 0], size: 26, pts: 0, trash: true }
+      : FRUITS[r < 0.18 ? 0 : 1 + ((Math.random() * (FRUITS.length - 1)) | 0)];
+    const margin = 34;
+    game.drops.push({
+      x: margin + Math.random() * (W - margin * 2),
+      y: -40,
+      vy: 110 + Math.random() * 70 + game.score * 1.6,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 3,
+      ...item,
+    });
+  }
+
+  function drawSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#bfe3ef');
+    g.addColorStop(0.55, '#d9eff2');
+    g.addColorStop(1, '#f3e7c8');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // 해
+    ctx.fillStyle = 'rgba(255,232,160,.9)';
+    ctx.beginPath();
+    ctx.arc(W * 0.82, H * 0.12, 30, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 구름
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    for (let i = 0; i < 3; i++) {
+      const cx = ((i * 137 + game.t * 12) % (W + 140)) - 70;
+      const cy = H * (0.10 + i * 0.07);
+      for (let j = 0; j < 3; j++) {
+        ctx.beginPath();
+        ctx.arc(cx + j * 22, cy + (j === 1 ? -8 : 0), 20 - j * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawWater() {
+    const top = H * 0.86;
+    ctx.fillStyle = '#78c0d8';
+    ctx.fillRect(0, top, W, H - top);
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    for (let i = 0; i < 6; i++) {
+      const y = top + 12 + i * 16;
+      const off = Math.sin(game.t * 1.6 + i) * 10;
+      ctx.fillRect(((i * 90) + off) % W, y, 40, 3);
+    }
+    // 잔디
+    ctx.fillStyle = '#7dbb63';
+    ctx.fillRect(0, top - 14, W, 14);
+    ctx.fillStyle = '#5f8a68';
+    for (let x = 0; x < W; x += 16) ctx.fillRect(x, top - 20, 8, 8);
+  }
+
+  function drawHippo() {
+    const h = game.hippo;
+    if (!h) return;
+    const bob = Math.sin(game.t * 2.2) * 2;
+    const x = h.x, y = h.y + bob;
+    const s = h.w / 150;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+
+    // 그림자
+    ctx.fillStyle = 'rgba(60,40,25,.18)';
+    ctx.beginPath();
+    ctx.ellipse(0, 66, 74, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 몸통
+    ctx.fillStyle = '#8a7ba8';
+    roundRect(-72, 0, 144, 62, 26);
+    ctx.fill();
+
+    // 다리
+    ctx.fillStyle = '#7a6c96';
+    ctx.fillRect(-52, 52, 26, 16);
+    ctx.fillRect(26, 52, 26, 16);
+
+    // 머리
+    ctx.fillStyle = '#9a8bb8';
+    roundRect(-62, -52, 124, 66, 26);
+    ctx.fill();
+
+    // 귀
+    ctx.beginPath(); ctx.arc(-52, -52, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(52, -52, 12, 0, Math.PI * 2); ctx.fill();
+
+    // 눈
+    ctx.fillStyle = '#33241a';
+    const blink = (Math.sin(game.t * 0.9) > 0.97) ? 1 : 5;
+    ctx.fillRect(-38, -34, 7, blink);
+    ctx.fillRect(24, -34, 7, blink);
+
+    // 콧구멍
+    ctx.fillStyle = '#6f6188';
+    ctx.beginPath(); ctx.arc(-16, -12, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6, -12, 5, 0, Math.PI * 2); ctx.fill();
+
+    // 입
+    const open = Math.max(0, h.mouthOpen);
+    ctx.fillStyle = '#4a3550';
+    ctx.beginPath();
+    ctx.moveTo(-44, 2);
+    ctx.quadraticCurveTo(0, 2 + 34 * open, 44, 2);
+    ctx.quadraticCurveTo(0, 6, -44, 2);
+    ctx.fill();
+
+    if (open > 0.35) {
+      // 이빨
+      ctx.fillStyle = '#fffaf0';
+      ctx.fillRect(-30, 4, 9, 10);
+      ctx.fillRect(21, 4, 9, 10);
+      // 혀
+      ctx.fillStyle = '#d98b9b';
+      ctx.beginPath();
+      ctx.ellipse(0, 14, 20, 7 * open, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawDrops() {
+    for (const d of game.drops) {
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rot);
+      ctx.font = d.size + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.emoji, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  function drawPops() {
+    for (const p of game.pops) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.font = 'bold 18px Galmuri11, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.restore();
+    }
+  }
+
+  function hit(d) {
+    const h = game.hippo;
+    const mouthY = h.y - 8;
+    const mouthHalfW = h.w * 0.30;
+    const near = Math.abs(d.x - h.x) < mouthHalfW && Math.abs(d.y - mouthY) < 30;
+
+    if (near) {
+      if (d.trash) {
+        game.trash += 1;
+        game.shake = 0.35;
+        game.flash = { a: 0.5, color: '176,84,76' };
+        game.pops.push({ x: h.x, y: h.y - 70, text: '퉤!', color: '#8d3f39', life: 1 });
+        h.mouthOpen = 0;
+        if (game.trash >= 3) end();
+      } else {
+        game.score += d.pts;
+        h.mouthOpen = 1;
+        game.pops.push({ x: d.x, y: d.y, text: '+' + d.pts, color: '#5a3720', life: 1 });
+      }
+      updateHud();
+      return true;
+    }
+
+    // 몸에 맞으면 놓침
+    const bodyNear = Math.abs(d.x - h.x) < h.w * 0.5 && d.y > h.y - 30;
+    if (bodyNear) {
+      if (!d.trash) game.pops.push({ x: d.x, y: d.y, text: '놓침', color: '#8a7ba8', life: 0.9 });
+      return true;
+    }
+    return false;
+  }
+
+  function update(dt) {
+    game.t += dt;
+    game.spawnT -= dt;
+    const h = game.hippo;
+    if (h) {
+      h.mouthOpen += ((game.running ? 1 : 0) - h.mouthOpen) * Math.min(1, dt * 8);
+    }
+
+    if (game.running) {
+      if (game.spawnT <= 0) {
+        spawn();
+        game.spawnGap = Math.max(0.42, 0.95 - game.score * 0.012);
+        game.spawnT = game.spawnGap * (0.8 + Math.random() * 0.5);
+      }
+    }
+
+    for (let i = game.drops.length - 1; i >= 0; i--) {
+      const d = game.drops[i];
+      d.y += d.vy * dt;
+      d.rot += d.vr * dt;
+      if (d.y > H + 50) { game.drops.splice(i, 1); continue; }
+      if (hit(d)) game.drops.splice(i, 1);
+    }
+
+    for (let i = game.pops.length - 1; i >= 0; i--) {
+      const p = game.pops[i];
+      p.y -= 34 * dt;
+      p.life -= dt * 1.1;
+      if (p.life <= 0) game.pops.splice(i, 1);
+    }
+
+    if (game.shake > 0) game.shake = Math.max(0, game.shake - dt);
+    if (game.flash) {
+      game.flash.a -= dt * 2;
+      if (game.flash.a <= 0) game.flash = null;
+    }
+  }
+
+  function render() {
+    ctx.save();
+    if (game.shake > 0) {
+      const k = game.shake * 12;
+      ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
+    }
+    drawSky();
+    drawWater();
+    drawHippo();
+    drawDrops();
+    drawPops();
+    ctx.restore();
+
+    if (game.flash) {
+      ctx.fillStyle = 'rgba(' + game.flash.color + ',' + Math.max(0, game.flash.a) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  let last = 0;
+  function loop(ts) {
+    if (!last) last = ts;
+    let dt = (ts - last) / 1000;
+    last = ts;
+    if (dt > 0.05) dt = 0.05;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function start() {
+    resize();
+    reset();
+    game.running = true;
+    startPanel.hidden = true;
+    overPanel.hidden = true;
+  }
+
+  function end() {
+    game.running = false;
+    overScore.textContent = '먹은 과일 ' + game.score + '개 · 쓰레기 ' + game.trash + '번';
+    overPanel.hidden = false;
+  }
+
+  // 조작
+  function moveTo(clientX) {
+    if (!game.hippo) return;
+    const r = cv.getBoundingClientRect();
+    const x = clientX - r.left;
+    const half = game.hippo.w / 2;
+    game.hippo.x = Math.max(half, Math.min(W - half, x));
+  }
+
+  let dragging = false;
+  cv.addEventListener('pointerdown', e => { dragging = true; moveTo(e.clientX); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (dragging) moveTo(e.clientX); });
+  cv.addEventListener('pointerup', () => { dragging = false; });
+  cv.addEventListener('pointercancel', () => { dragging = false; });
+
+  window.addEventListener('keydown', e => {
+    if (!game.hippo) return;
+    const step = 26;
+    if (e.key === 'ArrowLeft' || e.key === 'a') game.hippo.x = Math.max(game.hippo.w / 2, game.hippo.x - step);
+    if (e.key === 'ArrowRight' || e.key === 'd') game.hippo.x = Math.min(W - game.hippo.w / 2, game.hippo.x + step);
+  });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  document.getElementById('againBtn').addEventListener('click', start);
+  window.addEventListener('resize', resize);
+
+  resize();
+  reset();
+  game.running = false;
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
