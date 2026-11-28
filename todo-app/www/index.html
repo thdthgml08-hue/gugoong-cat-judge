@@ -210,9 +210,34 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   100% { transform: translate(-50%, 140%); opacity: 0; }
 }
 
-#buddy .face-wow { display: none; }
-#buddy.wow .face-wow { display: inline; }
-#buddy.wow .face-happy { display: none; }
+.bot .face-wow, .bot .face-sad, .bot .acc { display: none; }
+.bot[data-face="wow"] .face-wow, .bot[data-face="sad"] .face-sad { display: inline; }
+.bot[data-face="wow"] .face-happy, .bot[data-face="sad"] .face-happy { display: none; }
+.bot[data-face="sad"] .cheek { opacity: .3; }
+.bot .tear { fill: #8ccfff; stroke: none; }
+.bot.has-2 .acc-2, .bot.has-3 .acc-3, .bot.has-4 .acc-4, .bot.has-5 .acc-5 { display: inline; }
+.bot.has-2 .bulb { display: none; }
+.bot .petal { fill: var(--bot-cheek); }
+.bot .pistil { fill: #ffd36b; }
+.bot .bow { fill: var(--bot-cheek); stroke: var(--bot-line); stroke-width: 2; stroke-linejoin: round; }
+.bot .bow-knot { fill: var(--bot-line); }
+.bot .wing { fill: var(--bot-glow); stroke: var(--bot-line); stroke-width: 2.5; stroke-linejoin: round; opacity: .9; }
+.bot .crown { fill: #ffd36b; stroke: var(--bot-line); stroke-width: 2.5; stroke-linejoin: round; }
+
+/* 삐익이 카드: 레벨 · 경험치 · 연속 기록 */
+.pal { display: flex; align-items: center; gap: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 12px 16px; }
+.pal .bot { width: 64px; height: 75px; flex: none; }
+.pal-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pal-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pal-top b { font-size: 16px; }
+.lv { font-size: 12px; font-weight: 800; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 8px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.streak { font-size: 13px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.streak.off { color: var(--muted); font-weight: 500; }
+.xpbar { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+.xpbar span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width .5s ease; }
+.pal-msg { margin: 0; font-size: 13px; color: var(--ink); line-height: 1.4; }
+.pal-next { margin: 0; font-size: 12px; color: var(--muted); }
+.pal.risk { border-color: var(--bot-cheek); }
 #buddy.show.wow { animation: buddy-in-long 3.4s cubic-bezier(.2,.9,.3,1.2) both; }
 #buddy.show.wow .bot { animation: hop .42s ease-in-out .5s 5; }
 #buddy.show.wow .bulb { animation: blink .25s steps(2) .2s 12; }
@@ -267,6 +292,16 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <button type="button" data-skin="night"><span class="swatch" style="background:linear-gradient(135deg,#141a33 50%,#ffd36b 50%)"></span>밤하늘</button>
   </div>
 
+  <section class="pal" id="pal" aria-label="삐익이">
+    <span id="pal-bot-slot"></span>
+    <div class="pal-info">
+      <div class="pal-top"><b>삐익이<span class="lv" id="pal-lv">Lv.1</span></b><span class="streak off" id="streak">🔥 0일</span></div>
+      <div class="xpbar" role="progressbar" aria-label="다음 레벨까지" id="xpbar"><span id="xp-fill"></span></div>
+      <p class="pal-msg" id="pal-msg"></p>
+      <p class="pal-next" id="pal-next"></p>
+    </div>
+  </section>
+
   <div class="card">
     <form id="add-form" autocomplete="off">
       <input id="new-task" maxlength="200" placeholder="할 일을 적어 주세요" aria-label="새 할 일" enterkeyhint="done">
@@ -288,15 +323,18 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </div>
 <div id="buddy" hidden aria-live="polite">
   <div class="bubble"><span id="buddy-say">장하다!!!</span><small id="buddy-sub">삐익!</small></div>
-  <svg class="bot" viewBox="0 0 120 140" aria-hidden="true">
+  <svg class="bot" id="buddy-bot" viewBox="0 0 120 140" aria-hidden="true">
+    <g class="acc acc-4"><path class="wing" d="M40 104 q-34 -16 -30 12 q14 6 30 -4 z M80 104 q34 -16 30 12 q-14 6 -30 -4 z"/></g>
     <line class="stick" x1="60" y1="24" x2="60" y2="10"/>
     <circle class="bulb" cx="60" cy="8" r="6"/>
+    <g class="acc acc-2"><circle class="petal" cx="60" cy="2" r="4"/><circle class="petal" cx="66" cy="7" r="4"/><circle class="petal" cx="63.5" cy="13.5" r="4"/><circle class="petal" cx="56.5" cy="13.5" r="4"/><circle class="petal" cx="54" cy="7" r="4"/><circle class="pistil" cx="60" cy="8" r="3.2"/></g>
     <rect class="ear" x="8" y="44" width="12" height="22" rx="5"/>
     <rect class="ear" x="100" y="44" width="12" height="22" rx="5"/>
     <rect class="head" x="18" y="24" width="84" height="64" rx="24"/>
     <rect class="screen" x="28" y="35" width="64" height="42" rx="15"/>
     <path class="face face-happy" d="M40 58 q6 -9 12 0 M68 58 q6 -9 12 0 M53 66 q7 6 14 0"/>
     <g class="face face-wow"><circle cx="45" cy="53" r="5.5"/><circle cx="75" cy="53" r="5.5"/><path d="M54 61 v10 h12 v-10 M54 66 h12"/></g>
+    <g class="face face-sad"><path d="M40 53 l11 4 M80 53 l-11 4 M53 71 q7 -7 14 0"/><path class="tear" d="M44 62 q-3 5 0 7 q3 -2 0 -7 z"/></g>
     <ellipse class="cheek" cx="38" cy="68" rx="5" ry="3"/>
     <ellipse class="cheek" cx="82" cy="68" rx="5" ry="3"/>
     <path class="arm" d="M40 100 L22 80 M80 100 L98 80"/>
@@ -304,6 +342,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <circle class="hand" cx="100" cy="77" r="6"/>
     <rect class="body" x="38" y="90" width="44" height="38" rx="15"/>
     <path class="heart" d="M60 118 l-8 -8 a4.5 4.5 0 0 1 8 -5 a4.5 4.5 0 0 1 8 5 z"/>
+    <g class="acc acc-3"><path class="bow" d="M60 93 l-11 -6 v12 z M60 93 l11 -6 v12 z"/><circle class="bow-knot" cx="60" cy="93" r="3"/></g>
+    <g class="acc acc-5"><path class="crown" d="M44 31 l3 -12 l7 6 l6 -9 l6 9 l7 -6 l3 12 z"/></g>
   </svg>
 </div>
 
@@ -344,6 +384,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     $("bar").style.strokeDashoffset = 169.65 * (1 - pct / 100);
     $("headline").textContent = total && left === 0 ? "오늘 할 일 끝!" : "오늘 할 일";
     document.querySelectorAll(".filters button").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === filter));
+    paintPal();
   }
 
   function row(t) {
@@ -357,8 +398,18 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     chk.onclick = () => {
       t.done = !t.done;
       if (navigator.vibrate) navigator.vibrate(10);
-      save(); render();
-      if (t.done) cheer(todos.every(x => x.done));
+      let levelUp = 0;
+      if (t.done && !t.earned) {
+        // 할 일 하나당 경험치는 한 번만 (체크를 껐다 켰다 해도 더 안 쌓임)
+        t.earned = true;
+        const before = levelOf(pal.xp);
+        pal.xp += 1;
+        if (levelOf(pal.xp) > before) levelUp = levelOf(pal.xp);
+      }
+      const allDone = t.done && todos.every(x => x.done);
+      if (allDone) markAllDone();
+      save(); savePal(); render();
+      if (t.done) cheer({ text: t.text, allDone, levelUp });
     };
 
     const txt = document.createElement("span");
@@ -412,7 +463,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   $("clear").onclick = () => { todos = todos.filter(t => !t.done); save(); render(); };
 
   // 날짜가 바뀐 채로 앱을 다시 열면 날짜 줄을 새로 그림
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) setDate(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { setDate(); paintPal(); } });
 
 
   // ---- AI 친구 '삐익이': 체크하면 튀어나와 칭찬 + 삐익 효과음 ----
@@ -420,7 +471,81 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   let soundOn = true;
   try { soundOn = localStorage.getItem(SKEY) !== "off"; } catch {}
   let audio = null;
-  const PRAISE = ["장하다!!!"];
+
+  // ---- 삐익이 키우기 · 연속 기록 ----
+  const PKEY = "today-check:pal";
+  const LEVELS = [ // [필요한 완료 수, 생기는 것]
+    [0, ""], [5, "안테나에 꽃이 피었어"], [15, "리본을 맸어"], [30, "날개가 생겼어"], [50, "왕관을 썼어"],
+  ];
+  let pal = { xp: 0, streak: 0, best: 0, last: "" };
+  try { pal = { ...pal, ...JSON.parse(localStorage.getItem(PKEY) || "{}") }; } catch {}
+  function savePal() { try { localStorage.setItem(PKEY, JSON.stringify(pal)); } catch {} }
+  const levelOf = xp => LEVELS.reduce((lv, [need], i) => (xp >= need ? i + 1 : lv), 1);
+  const ymd = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  const today = () => ymd(new Date());
+  const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return ymd(d); };
+  const liveStreak = () => (pal.last === today() || pal.last === yesterday() ? pal.streak : 0);
+
+  function markAllDone() {
+    if (pal.last === today()) return;
+    pal.streak = pal.last === yesterday() ? pal.streak + 1 : 1;
+    pal.best = Math.max(pal.best, pal.streak);
+    pal.last = today();
+  }
+
+  function dressBot(svg, face) {
+    const lv = levelOf(pal.xp);
+    for (let n = 2; n <= 5; n++) svg.classList.toggle("has-" + n, lv >= n);
+    svg.dataset.face = face;
+  }
+
+  function paintPal() {
+    const lv = levelOf(pal.xp);
+    const next = LEVELS[lv];
+    const floor = LEVELS[lv - 1][0];
+    const streak = liveStreak();
+    const total = todos.length, left = todos.filter(t => !t.done).length;
+    const doneToday = pal.last === today();
+    const risk = !doneToday && pal.last === yesterday() && pal.streak > 0;
+
+    $("pal-lv").textContent = "Lv." + lv;
+    $("streak").textContent = streak ? `🔥 ${streak}일 연속` : "🔥 0일";
+    $("streak").classList.toggle("off", !streak);
+    const pct = next ? Math.round((pal.xp - floor) / (next[0] - floor) * 100) : 100;
+    $("xp-fill").style.width = pct + "%";
+    $("xpbar").setAttribute("aria-valuenow", pct);
+    $("pal-next").textContent = next
+      ? `${next[0] - pal.xp}개 더 끝내면 Lv.${lv + 1}: ${next[1]}`
+      : `최고 레벨! 지금까지 ${pal.xp}개 끝냈어 · 최고 연속 ${pal.best}일`;
+
+    let msg, face = "happy";
+    if (doneToday && total && left === 0) msg = "오늘 다 끝냈어! 최고야 💗";
+    else if (risk) { msg = `${pal.streak}일 기록이 끊기려고 해… 오늘도 다 끝내 줘 삐익 🥺`; face = "sad"; }
+    else if (!total) msg = "할 일을 적어 주면 옆에서 응원할게!";
+    else msg = `남은 일 ${left}개, 같이 하자 삐익!`;
+    $("pal-msg").textContent = msg;
+    $("pal").classList.toggle("risk", risk);
+    dressBot($("pal-bot"), face);
+  }
+
+  // ---- 상황에 맞는 칭찬 ----
+  const TOPICS = [
+    [/운동|헬스|러닝|달리기|요가|필라테스|산책|스쿼트|걷기|수영/, "근육 삐익! 💪"],
+    [/물|수분/, "촉촉해졌다 삐익! 💧"],
+    [/공부|과제|숙제|책|읽기|시험|강의|복습/, "똑똑해졌다 삐익! 📚"],
+    [/청소|빨래|설거지|정리|분리수거/, "반짝반짝 삐익! ✨"],
+    [/장보기|장 보기|마트|쇼핑/, "장 봤다니 장하다! 🛒"],
+    [/약|영양제|비타민/, "건강 충전 삐익! 💊"],
+    [/잠|수면|일찍 자/, "꿀잠 예약 삐익! 😴"],
+    [/밥|식사|요리|도시락/, "든든하다 삐익! 🍚"],
+    [/메일|연락|전화|답장|문자/, "소통왕 삐익! 📮"],
+  ];
+  function praiseFor(text) {
+    const h = new Date().getHours();
+    const say = h >= 5 && h < 11 ? "아침부터 장하다!!!" : (h >= 22 || h < 5) ? "이 밤에도 장하다!!!" : "장하다!!!";
+    const topic = TOPICS.find(([re]) => re.test(text));
+    return [say, topic ? topic[1] : "삐익!"];
+  }
 
   function paintSound() {
     $("sound").textContent = soundOn ? "🔊" : "🔇";
@@ -476,19 +601,27 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       setTimeout(() => el.remove(), 2000);
     }
   }
-  function cheer(allDone) {
+  function cheer({ text, allDone, levelUp }) {
     const buddy = $("buddy");
-    $("buddy-say").textContent = allDone ? "다 끝냈다!!!" : PRAISE[Math.floor(Math.random() * PRAISE.length)];
-    $("buddy-sub").textContent = allDone ? "삐빅 삐빅! 오늘 최고!" : "삐익!";
+    const big = allDone || levelUp > 0;
+    let say, sub;
+    if (levelUp) { say = "레벨 업!!!"; sub = `Lv.${levelUp} ${LEVELS[levelUp - 1][1]}! 삐삐빅!`; }
+    else if (allDone) { say = "다 끝냈다!!!"; sub = pal.streak > 1 ? `🔥 ${pal.streak}일 연속! 삐빅 삐빅!` : "삐빅 삐빅! 오늘 최고!"; }
+    else [say, sub] = praiseFor(text);
+    $("buddy-say").textContent = say;
+    $("buddy-sub").textContent = sub;
+    dressBot($("buddy-bot"), big ? "wow" : "happy");
     buddy.hidden = false;
     buddy.classList.remove("show", "wow"); void buddy.offsetWidth;
     buddy.classList.add("show");
-    buddy.classList.toggle("wow", allDone);
+    buddy.classList.toggle("wow", big);
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => { buddy.hidden = true; buddy.classList.remove("show", "wow"); }, allDone ? 3450 : 1850);
-    if (allDone) confetti();
-    // 삐- 익! (짧은 음 하나 + 위로 올라가는 음)
-    beep(allDone
+    hideTimer = setTimeout(() => { buddy.hidden = true; buddy.classList.remove("show", "wow"); }, big ? 3450 : 1850);
+    if (big) confetti();
+    // 삐- 익! (짧은 음 하나 + 위로 올라가는 음) · 레벨 업은 다섯 음
+    beep(levelUp
+      ? [[784, 0, .08], [988, .1, .08], [1175, .2, .08], [1568, .3, .08], [2093, .42, .3, 3136]]
+      : allDone
       ? [[988, 0, .09], [1319, .11, .09], [1568, .22, .09], [2093, .33, .22, 2637]]
       : [[1047, 0, .09], [1175, .12, .2, 1976]]);
   }
@@ -512,6 +645,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => applySkin(document.documentElement.dataset.skin));
   applySkin(document.documentElement.dataset.skin || "pink");
+
+  const palBot = $("buddy-bot").cloneNode(true);
+  palBot.id = "pal-bot";
+  $("pal-bot-slot").replaceWith(palBot);
 
   setDate();
   render();
